@@ -10,6 +10,7 @@ export default function TaskFormModal({
     onSubmit,
     isEditing,
     dependencyOptions,
+    projectResources = [],
 }) {
     const [substepPromptState, setSubstepPromptState] = useState({ isOpen: false, value: '' });
 
@@ -169,11 +170,17 @@ export default function TaskFormModal({
                                         </label>
                                         <input
                                             type="text"
+                                            list="project-resources-list"
                                             value={taskForm.resource}
                                             onChange={(event) => setTaskForm({ ...taskForm, resource: event.target.value })}
                                             className="w-full rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 sm:text-sm p-2.5 border outline-none"
                                             placeholder="Nom de la personne ou équipe"
                                         />
+                                        <datalist id="project-resources-list">
+                                            {projectResources.map((res) => (
+                                                <option key={res} value={res} />
+                                            ))}
+                                        </datalist>
                                     </div>
 
                                     <div className="mt-4 mb-2">

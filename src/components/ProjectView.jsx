@@ -1,11 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, AlertCircle, Clock, DollarSign, Activity, GitCommit, Info, FolderOpen, ArrowLeft, Settings, Table2, BarChart2, Layers, CheckSquare, X } from 'lucide-react';
+import { Plus, AlertCircle, Clock, DollarSign, Activity, GitCommit, Info, FolderOpen, ArrowLeft, Settings, Table2, BarChart2, Layers, CheckSquare, X, User } from 'lucide-react';
 import ImportExportModal from './ImportExportModal';
 import TaskFormModal from './TaskFormModal';
 import TaskDetailsModal from './TaskDetailsModal';
 import TaskTable from './TaskTable';
 import GanttView from './GanttView';
-import { getTodayDateString } from '../utils/dateUtils';
+import ResourceGanttView from './ResourceGanttView';
+import { getTodayDateString, offsetToEndDate } from '../utils/dateUtils';
 import AlertModal from './AlertModal';
 import ConfirmModal from './ConfirmModal';
 import { calculateProjectMetrics } from '../utils/pertCalculator';
@@ -153,7 +154,7 @@ export default function ProjectView({ project, onUpdateProject, onBack, APP_VERS
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
     const [selectedTaskDetails, setSelectedTaskDetails] = useState(null);
-    const [activeTab, setActiveTab] = useState('table'); // 'table' | 'gantt'
+    const [activeTab, setActiveTab] = useState('table'); // 'table' | 'gantt' | 'resources'
     const [ganttViewMode, setGanttViewMode] = useState('days'); // 'days' | 'calendar'
     const [ganttFocusDate, setGanttFocusDate] = useState(() => getTodayDateString());
     const [ganttSelectedDay, setGanttSelectedDay] = useState(null);
@@ -409,9 +410,23 @@ export default function ProjectView({ project, onUpdateProject, onBack, APP_VERS
                             </button>
                             <button
                                 onClick={() => setActiveTab('gantt')}
-                                className={`flex items-center gap-2 px-6 py-3 font-semibold text-sm border-b-2 transition-all whitespace-nowrap ${activeTab === 'gantt' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'}`}
+                                className={`flex items-center gap-2 px-6 py-3 font-semibold text-sm border-b-2 transition-all whitespace-nowrap ${
+                                    activeTab === 'gantt'
+                                        ? 'border-indigo-500 text-indigo-600'
+                                        : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'
+                                }`}
                             >
-                                <BarChart2 className="w-4 h-4" /> Diagramme de Gantt
+                                <BarChart2 className="w-4 h-4" /> Gantt
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('resources')}
+                                className={`flex items-center gap-2 px-6 py-3 font-semibold text-sm border-b-2 transition-all whitespace-nowrap ${
+                                    activeTab === 'resources'
+                                        ? 'border-indigo-500 text-indigo-600'
+                                        : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'
+                                }`}
+                            >
+                                <User className="w-4 h-4" /> Suivi Ressources
                             </button>
                         </div>
 
@@ -446,6 +461,24 @@ export default function ProjectView({ project, onUpdateProject, onBack, APP_VERS
                                     onEdit={handleEdit}
                                 />
                             )}
+
+                            {activeTab === 'resources' && !metrics.error && (
+                                <ResourceGanttView
+                                    tasks={metrics.tasks}
+                                    duration={metrics.duration}
+                                    projectStartDate={projectStartDate}
+                                    ganttViewMode={ganttViewMode}
+                                    focusDate={ganttFocusDate}
+                                    onFocusDateChange={setGanttFocusDate}
+                                    selectedDay={ganttSelectedDay}
+                                    onSelectedDayChange={setGanttSelectedDay}
+                                    onModeChange={setGanttViewMode}
+                                    ignoreWeekends={ignoreWeekends}
+                                    holidays={holidays}
+                                    onShowDetails={setSelectedTaskDetails}
+                                    onEdit={handleEdit}
+                                />
+                            )}
                         </div>
                     </div>
 
@@ -461,6 +494,7 @@ export default function ProjectView({ project, onUpdateProject, onBack, APP_VERS
                 onSubmit={handleSubmit}
                 isEditing={isEditing}
                 dependencyOptions={dependencyOptions}
+                projectResources={project.resources || []}
             />
 
             <TaskDetailsModal

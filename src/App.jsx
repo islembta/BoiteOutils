@@ -1,13 +1,15 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Activity, Plus, Calendar, BarChart2, Trash2, Upload } from 'lucide-react';
+import { Activity, Plus, Calendar, BarChart2, Trash2, Upload, User, X, Settings } from 'lucide-react';
 import ProjectView from './components/ProjectView';
 import { getFrenchHolidays, getTodayDateString, diffDays, formatUIDateLong, offsetToEndDate } from './utils/dateUtils';
 import { calculateProjectMetrics } from './utils/pertCalculator';
 import ConfirmModal from './components/ConfirmModal';
 import { processRetroCompatibility } from './utils/retroCompatibility';
 import ImportExportModal from './components/ImportExportModal';
+import GlobalSettingsModal from './components/GlobalSettingsModal';
 
 const PROJECTS_STORAGE_KEY = 'pert_projects_v2';
+const RESOURCES_STORAGE_KEY = 'pert_global_resources_v1';
 const APP_VERSION = __APP_VERSION__;
 
 export default function App() {
@@ -17,6 +19,9 @@ export default function App() {
     const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [newProjectName, setNewProjectName] = useState('');
+    const [globalResources, setGlobalResources] = useState([]);
+    const [newGlobalResource, setNewGlobalResource] = useState('');
+    const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
     const [confirmModal, setConfirmModal] = useState({
         isOpen: false,
         onConfirm: null,
@@ -42,6 +47,12 @@ export default function App() {
     useEffect(() => {
         try {
             const savedProjects = localStorage.getItem(PROJECTS_STORAGE_KEY);
+            const savedResources = localStorage.getItem(RESOURCES_STORAGE_KEY);
+            
+            if (savedResources) {
+                setGlobalResources(JSON.parse(savedResources));
+            }
+            
             if (savedProjects) {
                 setProjects(JSON.parse(savedProjects));
                 return;
@@ -81,6 +92,12 @@ export default function App() {
         }
     }, [projects, isLoaded]);
 
+    useEffect(() => {
+        if (isLoaded) {
+            localStorage.setItem(RESOURCES_STORAGE_KEY, JSON.stringify(globalResources));
+        }
+    }, [globalResources, isLoaded]);
+
     const handleCreateProjectClick = () => {
         setNewProjectName(`Nouveau Projet ${projects.length + 1}`);
         setIsProjectModalOpen(true);
@@ -97,6 +114,7 @@ export default function App() {
             ignoreWeekends: true,
             holidays: defaultHolidays,
             createdAt: new Date().toISOString(),
+            resources: [...globalResources],
             tasks: [],
         };
 
@@ -117,6 +135,17 @@ export default function App() {
                 setProjects((currentProjects) => currentProjects.filter((project) => project.id !== projectId));
             },
         });
+    };
+
+    const handleAddGlobalResource = () => {
+        if (newGlobalResource.trim() && !globalResources.includes(newGlobalResource.trim())) {
+            setGlobalResources([...globalResources, newGlobalResource.trim()]);
+            setNewGlobalResource('');
+        }
+    };
+
+    const handleRemoveGlobalResource = (res) => {
+        setGlobalResources(globalResources.filter(r => r !== res));
     };
 
     if (!isLoaded) {
@@ -150,6 +179,7 @@ export default function App() {
             ...project,
             duration: metrics.duration,
             endDate,
+            metrics,
         };
     });
 
@@ -165,6 +195,52 @@ export default function App() {
 
     const globalSpan = globalMinDate && globalMaxDate ? (diffDays(globalMaxDate, globalMinDate) + 1) || 1 : 1;
 
+    // Build resource usage data
+    const resourceTasks = [];
+    enrichedProjects.forEach(p => {
+        (p.metrics?.tasks || []).forEach(t => {
+            if (t.isParent || !t.computedStartDate || !t.computedEndDate) return;
+            resourceTasks.push({
+                ...t,
+                projectName: p.name,
+                resourceName: t.resource?.trim() || 'Non assignée'
+            });
+        });
+    });
+
+    const resourcesMap = {};
+    resourceTasks.forEach(t => {
+        if (!resourcesMap[t.resourceName]) Object.defineProperty(resourcesMap, t.resourceName, { value: [], enumerable: true, writable: true });
+        resourcesMap[t.resourceName].push(t);
+    });
+
+    const resourceEntries = Object.entries(resourcesMap).sort(([nameA], [nameB]) => {
+        if (nameA === 'Non assignée') return 1;
+        if (nameB === 'Non assignée') return -1;
+        return nameA.localeCompare(nameB);
+    });
+
+    resourceEntries.forEach(([_, tasks]) => {
+        tasks.sort((a, b) => a.computedStartDate.localeCompare(b.computedStartDate));
+        const levels = [];
+        tasks.forEach(t => {
+            let placed = false;
+            for (let i = 0; i < levels.length; i++) {
+                if (levels[i] < t.computedStartDate) {
+                    t.overlapLevel = i;
+                    levels[i] = t.computedEndDate;
+                    placed = true;
+                    break;
+                }
+            }
+            if (!placed) {
+                t.overlapLevel = levels.length;
+                levels.push(t.computedEndDate);
+            }
+        });
+        tasks.maxLevel = levels.length;
+    });
+
     return (
         <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans text-slate-800">
             <div className="max-w-5xl mx-auto space-y-8">
@@ -176,6 +252,13 @@ export default function App() {
                         <p className="text-slate-500 mt-1">Gérez vos estimations de temps et de coûts multi-projets</p>
                     </div>
                     <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => setIsSettingsModalOpen(true)}
+                            className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-medium rounded-lg shadow-sm transition-colors"
+                            title="Paramètres de l'application"
+                        >
+                            <Settings className="w-5 h-5 text-slate-500" />
+                        </button>
                         <button
                             onClick={() => setIsImportModalOpen(true)}
                             className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 text-indigo-600 border border-indigo-200 font-medium rounded-lg shadow-sm transition-colors"
@@ -197,6 +280,8 @@ export default function App() {
                     </div>
                 ) : (
                     <div className="space-y-6">
+                        {/* Ressources globales supprimées de l'interface principale */}
+
                         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
                             <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
                                 <BarChart2 className="w-5 h-5 text-indigo-500" /> Planning Global des Projets
@@ -254,6 +339,69 @@ export default function App() {
                                 <p className="text-sm text-slate-500">Dates non définies ou projets vides.</p>
                             )}
                         </div>
+
+                        {/* Utilisation Globale des Ressources */}
+                        {resourceEntries.length > 0 && (
+                            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                                <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+                                    <Activity className="w-5 h-5 text-indigo-500" /> Suivi d'utilisation des Ressources
+                                </h2>
+                                
+                                {globalMinDate && globalMaxDate ? (
+                                    <div className="relative pt-6 pb-2">
+                                        <div className="absolute top-0 left-0 text-xs font-semibold text-slate-400">
+                                            {formatUIDateLong(globalMinDate)}
+                                        </div>
+                                        <div className="absolute top-0 right-0 text-xs font-semibold text-slate-400">
+                                            {formatUIDateLong(globalMaxDate)}
+                                        </div>
+
+                                        <div className="space-y-4 border-t border-slate-100 pt-4">
+                                            {resourceEntries.map(([resName, tasks]) => {
+                                                const rowHeight = Math.max(1, tasks.maxLevel) * 32 + 8;
+                                                return (
+                                                    <div key={resName} className="flex flex-col gap-2">
+                                                        <h3 className="text-sm font-bold text-slate-700">{resName}</h3>
+                                                        <div 
+                                                            className="relative bg-slate-50 rounded-lg border border-slate-100 overflow-hidden" 
+                                                            style={{ height: `${rowHeight}px` }}
+                                                        >
+                                                            {/* Background grid representation */}
+                                                            <div className="absolute left-0 top-0 bottom-0 border-l border-slate-200" style={{ width: '100%' }} />
+
+                                                            {tasks.map((task, i) => {
+                                                                const leftPercent = Math.max(0, (diffDays(task.computedStartDate, globalMinDate) / globalSpan) * 100);
+                                                                const widthPercent = Math.max(0.5, ((diffDays(task.computedEndDate, task.computedStartDate) + 1) / globalSpan) * 100);
+                                                                const isUnassigned = resName === 'Non assignée';
+
+                                                                return (
+                                                                    <div
+                                                                        key={`${task.projectId}-${task.id}-${i}`}
+                                                                        className={`absolute rounded-md shadow-sm border text-[10px] font-semibold flex items-center px-1.5 overflow-hidden whitespace-nowrap text-white ${isUnassigned ? 'bg-slate-400 border-slate-500' : 'bg-emerald-500 border-emerald-600'}`}
+                                                                        style={{
+                                                                            left: `${leftPercent}%`,
+                                                                            width: `${widthPercent}%`,
+                                                                            top: `${4 + task.overlapLevel * 32}px`,
+                                                                            height: '26px',
+                                                                            minWidth: '4px'
+                                                                        }}
+                                                                        title={`${task.name} (${task.projectName})`}
+                                                                    >
+                                                                        {task.name}
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-slate-500">Dates non définies ou projets vides.</p>
+                                )}
+                            </div>
+                        )}
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {enrichedProjects.map((project) => (
@@ -348,6 +496,16 @@ export default function App() {
                 onImport={handleHomeImport}
                 appVersion={APP_VERSION}
                 mode="import"
+            />
+
+            <GlobalSettingsModal
+                isOpen={isSettingsModalOpen}
+                onClose={() => setIsSettingsModalOpen(false)}
+                globalResources={globalResources}
+                newGlobalResource={newGlobalResource}
+                setNewGlobalResource={setNewGlobalResource}
+                onAddResource={handleAddGlobalResource}
+                onRemoveResource={handleRemoveGlobalResource}
             />
         </div>
     );

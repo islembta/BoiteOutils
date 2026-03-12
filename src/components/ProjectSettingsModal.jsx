@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, Plus, Trash2 } from 'lucide-react';
+import { X, Calendar, Plus, Trash2, User, Download } from 'lucide-react';
 import FrDateInput from './FrDateInput';
 
 export default function ProjectSettingsModal({ isOpen, onClose, project, onSave }) {
@@ -8,6 +8,8 @@ export default function ProjectSettingsModal({ isOpen, onClose, project, onSave 
     const [ignoreWeekends, setIgnoreWeekends] = useState(true);
     const [holidays, setHolidays] = useState([]);
     const [newHoliday, setNewHoliday] = useState('');
+    const [resources, setResources] = useState([]);
+    const [newResource, setNewResource] = useState('');
 
     useEffect(() => {
         if (isOpen && project) {
@@ -15,7 +17,9 @@ export default function ProjectSettingsModal({ isOpen, onClose, project, onSave 
             setStartDate(project.startDate || '');
             setIgnoreWeekends(project.ignoreWeekends ?? true);
             setHolidays([...(project.holidays || [])]);
+            setResources([...(project.resources || [])]);
             setNewHoliday('');
+            setNewResource('');
         }
     }, [isOpen, project]);
 
@@ -32,6 +36,30 @@ export default function ProjectSettingsModal({ isOpen, onClose, project, onSave 
         setHolidays(holidays.filter(h => h !== hDate));
     };
 
+    const handleAddResource = () => {
+        if (newResource.trim() && !resources.includes(newResource.trim())) {
+            setResources([...resources, newResource.trim()].sort());
+            setNewResource('');
+        }
+    };
+
+    const handleRemoveResource = (res) => {
+        setResources(resources.filter(r => r !== res));
+    };
+
+    const handleImportGlobalResources = () => {
+        const globalsJSON = localStorage.getItem('pert_global_resources_v1');
+        if (globalsJSON) {
+            try {
+                const globals = JSON.parse(globalsJSON);
+                if (Array.isArray(globals)) {
+                    const merged = Array.from(new Set([...resources, ...globals])).sort();
+                    setResources(merged);
+                }
+            } catch (e) { }
+        }
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
         onSave({
@@ -39,7 +67,8 @@ export default function ProjectSettingsModal({ isOpen, onClose, project, onSave 
             name,
             startDate,
             ignoreWeekends,
-            holidays
+            holidays,
+            resources
         });
         onClose();
     };
@@ -130,6 +159,64 @@ export default function ProjectSettingsModal({ isOpen, onClose, project, onSave 
                                             className="text-slate-400 hover:text-rose-500 p-1"
                                         >
                                             <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Ressources du Projet */}
+                    <div className="space-y-3">
+                        <div className="flex justify-between items-end">
+                            <label className="block text-sm font-semibold text-slate-700">Ressources du projet ({resources.length})</label>
+                            <button
+                                type="button"
+                                onClick={handleImportGlobalResources}
+                                className="text-xs flex items-center gap-1 text-indigo-600 hover:text-indigo-700 font-medium bg-indigo-50 px-2 py-1 rounded"
+                            >
+                                <Download className="w-3 h-3" /> Importer globales
+                            </button>
+                        </div>
+
+                        <div className="flex gap-2 items-start">
+                            <input
+                                type="text"
+                                value={newResource}
+                                onChange={e => setNewResource(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        handleAddResource();
+                                    }
+                                }}
+                                placeholder="Nouvelle ressource"
+                                className="flex-1 px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                            />
+                            <button
+                                type="button"
+                                onClick={handleAddResource}
+                                disabled={!newResource.trim()}
+                                className="px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 disabled:opacity-50 transition-colors flex items-center gap-2 font-medium text-sm h-[38px] mt-[1px]"
+                            >
+                                <Plus className="w-4 h-4" /> Ajouter
+                            </button>
+                        </div>
+
+                        <div className="max-h-32 overflow-y-auto border border-slate-200 rounded-lg p-2 bg-slate-50 flex flex-wrap gap-2">
+                            {resources.length === 0 ? (
+                                <div className="w-full text-center p-2 text-sm text-slate-500">Aucune ressource définie.</div>
+                            ) : (
+                                resources.map(res => (
+                                    <div key={res} className="flex items-center gap-2 bg-white text-slate-700 px-3 py-1.5 rounded-full border border-slate-200 shadow-sm text-sm font-medium">
+                                        <User className="w-3.5 h-3.5 text-indigo-400" />
+                                        <span>{res}</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleRemoveResource(res)}
+                                            className="p-0.5 hover:bg-rose-100 rounded-full transition-colors text-slate-400 hover:text-rose-600"
+                                        >
+                                            <X className="w-3.5 h-3.5" />
                                         </button>
                                     </div>
                                 ))
