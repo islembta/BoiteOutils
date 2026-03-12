@@ -147,25 +147,25 @@ export default function TaskDetailsModal({ isOpen, onClose, task, onEdit }) {
                             {!isPhase && (
                                 <>
                                     <div className="bg-blue-50/50 p-3 rounded-xl border border-blue-100/50 flex flex-col items-center justify-center">
-                                        <span className="text-xs text-slate-500 font-medium mb-1">Early Start (ES)</span>
+                                        <span className="text-xs text-slate-500 font-medium mb-1">Début au plus tôt (ES)</span>
                                         <span className="font-mono font-bold text-blue-700">{task.es?.toFixed(2)}</span>
                                     </div>
                                     <div className="bg-blue-50/50 p-3 rounded-xl border border-blue-100/50 flex flex-col items-center justify-center">
-                                        <span className="text-xs text-slate-500 font-medium mb-1">Early Finish (EF)</span>
+                                        <span className="text-xs text-slate-500 font-medium mb-1">Fin au plus tôt (EF)</span>
                                         <span className="font-mono font-bold text-blue-700">{task.ef?.toFixed(2)}</span>
                                     </div>
 
                                     <div className="bg-purple-50/50 p-3 rounded-xl border border-purple-100/50 flex flex-col items-center justify-center">
-                                        <span className="text-xs text-slate-500 font-medium mb-1">Late Start (LS)</span>
+                                        <span className="text-xs text-slate-500 font-medium mb-1">Début au plus tard (LS)</span>
                                         <span className="font-mono font-bold text-purple-700">{task.ls?.toFixed(2)}</span>
                                     </div>
                                     <div className="bg-purple-50/50 p-3 rounded-xl border border-purple-100/50 flex flex-col items-center justify-center">
-                                        <span className="text-xs text-slate-500 font-medium mb-1">Late Finish (LF)</span>
+                                        <span className="text-xs text-slate-500 font-medium mb-1">Fin au plus tard (LF)</span>
                                         <span className="font-mono font-bold text-purple-700">{task.lf?.toFixed(2)}</span>
                                     </div>
 
                                     <div className={`p-3 rounded-xl border col-span-1 flex flex-col items-center justify-center ${task.slack === 0 ? 'bg-rose-50 border-rose-200' : 'bg-emerald-50 border-emerald-200'}`}>
-                                        <span className="text-xs text-slate-500 font-medium mb-1">Marge (Slack)</span>
+                                        <span className="text-xs text-slate-500 font-medium mb-1">Marge</span>
                                         <span className={`font-mono font-bold ${task.slack === 0 ? 'text-rose-600' : 'text-emerald-600'}`}>{task.slack?.toFixed(2)} j</span>
                                     </div>
 

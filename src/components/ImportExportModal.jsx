@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { processRetroCompatibility } from '../utils/retroCompatibility';
 
-export default function ImportExportModal({ isOpen, onClose, project, onImport, appVersion }) {
+export default function ImportExportModal({ isOpen, onClose, project, onImport, appVersion, mode = 'both' }) {
     const [projectName, setProjectName] = useState(project?.name || 'Mon Projet PERT');
     const [importStatus, setImportStatus] = useState(null);
     const [importMessage, setImportMessage] = useState('');
@@ -157,12 +157,13 @@ export default function ImportExportModal({ isOpen, onClose, project, onImport, 
                     </button>
                 </div>
 
-                <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 overflow-y-auto">
-                    <section className="flex flex-col gap-4">
-                        <div className="flex items-center gap-2 text-slate-700 font-bold text-base border-b border-slate-100 pb-2">
-                            <ArrowDownToLine className="w-5 h-5 text-indigo-500" />
-                            Exporter le projet
-                        </div>
+                <div className={`p-6 grid grid-cols-1 ${mode === 'both' ? 'md:grid-cols-2' : ''} gap-6 overflow-y-auto`}>
+                    {mode === 'both' && (
+                        <section className="flex flex-col gap-4">
+                            <div className="flex items-center gap-2 text-slate-700 font-bold text-base border-b border-slate-100 pb-2">
+                                <ArrowDownToLine className="w-5 h-5 text-indigo-500" />
+                                Exporter le projet
+                            </div>
 
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -191,15 +192,16 @@ export default function ImportExportModal({ isOpen, onClose, project, onImport, 
                             Le fichier d'export contient les tâches, les contraintes, la date de départ du projet et les jours fériés.
                         </div>
 
-                        <button
-                            onClick={handleExport}
-                            disabled={exportProject.tasks.length === 0}
-                            className="mt-auto w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-semibold rounded-lg shadow-sm transition-colors text-sm"
-                        >
-                            <Download className="w-4 h-4" />
-                            Télécharger le fichier .btotls
-                        </button>
-                    </section>
+                            <button
+                                onClick={handleExport}
+                                disabled={exportProject.tasks.length === 0}
+                                className="mt-auto w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-semibold rounded-lg shadow-sm transition-colors text-sm"
+                            >
+                                <Download className="w-4 h-4" />
+                                Télécharger le fichier .btotls
+                            </button>
+                        </section>
+                    )}
 
                     <section className="flex flex-col gap-4">
                         <div className="flex items-center gap-2 text-slate-700 font-bold text-base border-b border-slate-100 pb-2">

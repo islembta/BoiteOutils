@@ -2,7 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { Plus, Edit2, X, User, Save } from 'lucide-react';
 import FrDateInput from './FrDateInput';
 
-export default function TaskFormModal({ isOpen, onClose, taskForm, setTaskForm, onSubmit, isEditing, availableDependencies }) {
+export default function TaskFormModal({
+    isOpen,
+    onClose,
+    taskForm,
+    setTaskForm,
+    onSubmit,
+    isEditing,
+    dependencyOptions,
+}) {
     const [substepPromptState, setSubstepPromptState] = useState({ isOpen: false, value: '' });
 
     useEffect(() => {
@@ -13,20 +21,22 @@ export default function TaskFormModal({ isOpen, onClose, taskForm, setTaskForm, 
 
     if (!isOpen) return null;
 
-    const handleDependencyChange = (event) => {
-        const selected = [];
-        const options = event.target.options;
+    const isPhase = taskForm.id && !taskForm.id.toString().includes('.');
+    const selectedDependencies = dependencyOptions?.selected || [];
+    const suggestedDependencies = dependencyOptions?.suggested || [];
+    const compatibleDependencies = dependencyOptions?.compatible || [];
 
-        for (let index = 0; index < options.length; index += 1) {
-            if (options[index].selected) {
-                selected.push(options[index].value);
-            }
+    const toggleDependency = (dependencyId) => {
+        const selected = new Set(taskForm.dependencies || []);
+
+        if (selected.has(dependencyId)) {
+            selected.delete(dependencyId);
+        } else {
+            selected.add(dependencyId);
         }
 
-        setTaskForm({ ...taskForm, dependencies: selected });
+        setTaskForm({ ...taskForm, dependencies: Array.from(selected) });
     };
-
-    const isPhase = taskForm.id && !taskForm.id.toString().includes('.');
 
     const confirmSubstep = (event) => {
         event.preventDefault();
@@ -59,6 +69,43 @@ export default function TaskFormModal({ isOpen, onClose, taskForm, setTaskForm, 
                 substep.id === substepId ? { ...substep, completed: !substep.completed } : substep
             ),
         });
+    };
+
+    const renderDependencyList = (items, emptyMessage) => {
+        if (items.length === 0) {
+            return <p className="text-xs text-slate-400 italic">{emptyMessage}</p>;
+        }
+
+        return (
+            <div className="space-y-2">
+                {items.map((task) => {
+                    const isSelected = (taskForm.dependencies || []).includes(task.id);
+
+                    return (
+                        <button
+                            key={task.id}
+                            type="button"
+                            onClick={() => toggleDependency(task.id)}
+                            className={`w-full flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left transition-colors ${isSelected
+                                    ? 'border-indigo-300 bg-indigo-50 text-indigo-900'
+                                    : 'border-slate-200 bg-white hover:border-indigo-200 hover:bg-slate-50'
+                                }`}
+                        >
+                            <div className="min-w-0">
+                                <p className="text-sm font-semibold text-slate-800">{task.id}</p>
+                                <p className="text-xs text-slate-500 truncate">{task.name}</p>
+                            </div>
+                            <span
+                                className={`shrink-0 rounded-full px-2 py-1 text-[11px] font-semibold ${isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500'
+                                    }`}
+                            >
+                                {isSelected ? 'Retirer' : 'Ajouter'}
+                            </span>
+                        </button>
+                    );
+                })}
+            </div>
+        );
     };
 
     return (
@@ -129,6 +176,10 @@ export default function TaskFormModal({ isOpen, onClose, taskForm, setTaskForm, 
                                         />
                                     </div>
 
+                                    <div className="mt-4 mb-2">
+                                        <label className="block text-sm font-medium text-slate-700">Estimations de durée (en jours)</label>
+                                        <p className="text-xs text-slate-500">Saisissez les durées estimées en nombre de jours pour cette tâche.</p>
+                                    </div>
                                     <div className="grid grid-cols-3 gap-3">
                                         <div>
                                             <label className="block text-xs font-medium text-slate-700 mb-1">Optimiste <span className="text-slate-400 font-normal">(opt.)</span></label>
@@ -220,55 +271,81 @@ export default function TaskFormModal({ isOpen, onClose, taskForm, setTaskForm, 
                                 </>
                             )}
 
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Dépendances logiques (Ctrl+Clic)</label>
-                                <select
-                                    multiple
-                                    value={taskForm.dependencies}
-                                    onChange={handleDependencyChange}
-                                    className="w-full rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 sm:text-sm p-2.5 border outline-none min-h-[120px]"
-                                >
-                                    {availableDependencies.map((task) => (
-                                        <option key={task.id} value={task.id}>{task.id} - {task.name}</option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div className="mt-4 border-t pt-4">
-                                <div className="flex items-center justify-between mb-2">
-                                    <label className="block text-sm font-medium text-slate-700">Sous-étapes (To-Do List)</label>
-                                    <button
-                                        type="button"
-                                        onClick={() => setSubstepPromptState({ isOpen: true, value: '' })}
-                                        className="text-xs flex items-center gap-1 text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded"
-                                    >
-                                        <Plus className="w-3 h-3" /> Ajouter
-                                    </button>
+                            <div className="space-y-3">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Dépendances</label>
+                                    <p className="text-xs text-slate-500">Cliquez sur une tâche pour l'ajouter ou la retirer des dépendances.</p>
                                 </div>
 
-                                {taskForm.substeps && taskForm.substeps.length > 0 ? (
-                                    <ul className="space-y-2">
-                                        {taskForm.substeps.map((substep, index) => (
-                                            <li key={substep.id} className="flex items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-200">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={substep.completed}
-                                                    onChange={() => toggleSubstep(substep.id)}
-                                                    className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
-                                                />
-                                                <span className={`text-sm flex-1 ${substep.completed ? 'line-through text-slate-400' : 'text-slate-700'}`}>
-                                                    {taskForm.id}.{index + 1} - {substep.title}
-                                                </span>
-                                                <button type="button" onClick={() => removeSubstep(substep.id)} className="text-slate-400 hover:text-rose-500">
-                                                    <X className="w-4 h-4" />
+                                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Déjà sélectionnées</p>
+                                    {selectedDependencies.length === 0 ? (
+                                        <p className="text-xs text-slate-400 italic">Aucune dépendance sélectionnée.</p>
+                                    ) : (
+                                        <div className="flex flex-wrap gap-2">
+                                            {selectedDependencies.map((task) => (
+                                                <button
+                                                    key={task.id}
+                                                    type="button"
+                                                    onClick={() => toggleDependency(task.id)}
+                                                    className="inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-white px-3 py-1.5 text-xs font-medium text-indigo-700 hover:border-indigo-300 hover:bg-indigo-50"
+                                                >
+                                                    <span>{task.id} - {task.name}</span>
+                                                    <X className="w-3 h-3" />
                                                 </button>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                ) : (
-                                    <p className="text-xs text-slate-400 italic">Aucune sous-étape définie. Ceci est utile pour diviser le travail d'une tâche.</p>
-                                )}
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-3">
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 mb-2">Suggestions</p>
+                                    {renderDependencyList(suggestedDependencies, 'Aucune suggestion prioritaire pour cette tâche.')}
+                                </div>
+
+                                <div className="rounded-xl border border-slate-200 bg-white p-3">
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Tâches compatibles</p>
+                                    {renderDependencyList(compatibleDependencies, 'Aucune autre tâche compatible.')}
+                                </div>
                             </div>
+
+                            {!isPhase && (
+                                <div className="mt-4 border-t pt-4">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <label className="block text-sm font-medium text-slate-700">Sous-tâches (To-Do List)</label>
+                                        <button
+                                            type="button"
+                                            onClick={() => setSubstepPromptState({ isOpen: true, value: '' })}
+                                            className="text-xs flex items-center gap-1 text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded"
+                                        >
+                                            <Plus className="w-3 h-3" /> Ajouter
+                                        </button>
+                                    </div>
+
+                                    {taskForm.substeps && taskForm.substeps.length > 0 ? (
+                                        <ul className="space-y-2">
+                                            {taskForm.substeps.map((substep, index) => (
+                                                <li key={substep.id} className="flex items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-200">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={substep.completed}
+                                                        onChange={() => toggleSubstep(substep.id)}
+                                                        className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                                                    />
+                                                    <span className={`text-sm flex-1 ${substep.completed ? 'line-through text-slate-400' : 'text-slate-700'}`}>
+                                                        {taskForm.id}.{index + 1} - {substep.title}
+                                                    </span>
+                                                    <button type="button" onClick={() => removeSubstep(substep.id)} className="text-slate-400 hover:text-rose-500">
+                                                        <X className="w-4 h-4" />
+                                                    </button>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    ) : (
+                                        <p className="text-xs text-slate-400 italic">Aucune sous-étape définie. Ceci est utile pour diviser le travail d'une tâche.</p>
+                                    )}
+                                </div>
+                            )}
                         </form>
                     </div>
 
@@ -289,7 +366,7 @@ export default function TaskFormModal({ isOpen, onClose, taskForm, setTaskForm, 
                     <div className="relative w-full max-w-md bg-white rounded-2xl shadow-xl flex flex-col animate-fade-in">
                         <form onSubmit={confirmSubstep}>
                             <div className="px-6 py-4 border-b border-slate-100">
-                                <h3 className="text-lg font-bold text-slate-800">Nouvelle sous-étape</h3>
+                                <h3 className="text-lg font-bold text-slate-800">Nouvelle sous-tâche</h3>
                             </div>
                             <div className="p-6">
                                 <label className="block text-sm font-medium text-slate-700 mb-2">Nom (To-Do)</label>

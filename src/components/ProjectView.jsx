@@ -11,6 +11,136 @@ import ConfirmModal from './ConfirmModal';
 import { calculateProjectMetrics } from '../utils/pertCalculator';
 import ProjectSettingsModal from './ProjectSettingsModal';
 
+const parseWbsId = (id) => id.toString().split('.').map((segment) => Number.parseInt(segment, 10) || 0);
+
+const compareWbsIds = (leftId, rightId) => {
+    const leftParts = parseWbsId(leftId);
+    const rightParts = parseWbsId(rightId);
+    const maxLength = Math.max(leftParts.length, rightParts.length);
+
+    for (let index = 0; index < maxLength; index += 1) {
+        const leftValue = leftParts[index] ?? -1;
+        const rightValue = rightParts[index] ?? -1;
+
+        if (leftValue !== rightValue) {
+            return leftValue - rightValue;
+        }
+    }
+
+    return 0;
+};
+
+const getParentTaskId = (taskId) => {
+    const segments = taskId.toString().split('.');
+    return segments.length > 1 ? segments.slice(0, -1).join('.') : null;
+};
+
+const getLastSegment = (taskId) => {
+    const segments = parseWbsId(taskId);
+    return segments[segments.length - 1] ?? 0;
+};
+
+const getWbsDistance = (leftId, rightId) => {
+    const leftParts = parseWbsId(leftId);
+    const rightParts = parseWbsId(rightId);
+    const maxLength = Math.max(leftParts.length, rightParts.length);
+    let distance = Math.abs(leftParts.length - rightParts.length) * 4;
+
+    for (let index = 0; index < maxLength; index += 1) {
+        distance += Math.abs((leftParts[index] ?? 0) - (rightParts[index] ?? 0));
+    }
+
+    return distance;
+};
+
+const buildSuccessorMap = (tasks) => {
+    const successors = {};
+
+    tasks.forEach((task) => {
+        successors[task.id] = [];
+    });
+
+    tasks.forEach((task) => {
+        (task.dependencies || []).forEach((dependencyId) => {
+            if (successors[dependencyId]) {
+                successors[dependencyId].push(task.id);
+            }
+        });
+    });
+
+    return successors;
+};
+
+const hasPath = (successors, startId, targetId) => {
+    if (!successors[startId]) return false;
+
+    const visited = new Set();
+    const stack = [...successors[startId]];
+
+    while (stack.length > 0) {
+        const taskId = stack.pop();
+        if (taskId === targetId) return true;
+        if (visited.has(taskId)) continue;
+        visited.add(taskId);
+        stack.push(...(successors[taskId] || []));
+    }
+
+    return false;
+};
+
+const scoreDependencyCandidate = (candidate, currentTask, scopedTasks, metricsById) => {
+    if (!currentTask?.id) return -Infinity;
+
+    let score = 0;
+    const currentId = currentTask.id;
+    const currentParentId = getParentTaskId(currentId);
+    const candidateParentId = getParentTaskId(candidate.id);
+    const currentMetric = metricsById[currentId];
+    const candidateMetric = metricsById[candidate.id];
+
+    if (compareWbsIds(candidate.id, currentId) < 0) {
+        score += 24;
+    } else {
+        score -= 12;
+    }
+
+    if (candidateParentId && candidateParentId === currentParentId) {
+        score += 90;
+
+        if (getLastSegment(candidate.id) === getLastSegment(currentId) - 1) {
+            score += 170;
+        }
+    }
+
+    if (currentParentId && getLastSegment(currentId) === 1) {
+        const currentPhase = Number.parseInt(currentParentId, 10);
+        const previousPhaseId = Number.isNaN(currentPhase) ? null : String(currentPhase - 1);
+
+        if (previousPhaseId && previousPhaseId !== '0') {
+            const previousPhaseTasks = scopedTasks
+                .filter((task) => getParentTaskId(task.id) === previousPhaseId)
+                .sort((left, right) => compareWbsIds(left.id, right.id));
+            const previousPhaseLastTask = previousPhaseTasks[previousPhaseTasks.length - 1];
+
+            if (previousPhaseLastTask?.id === candidate.id) {
+                score += 150;
+            }
+        }
+    }
+
+    if (!currentParentId && getLastSegment(candidate.id) === getLastSegment(currentId) - 1) {
+        score += 140;
+    }
+
+    score += Math.max(0, 30 - getWbsDistance(candidate.id, currentId) * 4);
+
+    if (currentMetric && candidateMetric) {
+        score += Math.max(0, 40 - Math.abs(candidateMetric.ef - currentMetric.es) * 8);
+    }
+
+    return score;
+};
+
 export default function ProjectView({ project, onUpdateProject, onBack, APP_VERSION }) {
     const initialFormState = {
         id: null, name: '', description: '', resource: '',
@@ -165,10 +295,44 @@ export default function ProjectView({ project, onUpdateProject, onBack, APP_VERS
     const resetForm = () => { setTaskForm(initialFormState); setIsEditing(false); };
 
     const isPhase = taskForm.id && !taskForm.id.toString().includes('.');
-    const availableDependencies = tasks.filter(t => {
-        if (t.id === taskForm.id) return false;
-        return (!t.id.toString().includes('.')) === isPhase;
-    });
+    const dependencyOptions = useMemo(() => {
+        const selectedIds = taskForm.dependencies || [];
+        const metricsById = Object.fromEntries((metrics.tasks || []).map((task) => [task.id, task]));
+        const sourceTasks = metrics.tasks?.length > 0 ? metrics.tasks : tasks;
+        const scopedTasks = sourceTasks.filter((task) => {
+            if (task.id === taskForm.id) return false;
+            return (!task.id.toString().includes('.')) === isPhase;
+        });
+        const selectedSet = new Set(selectedIds);
+        const successors = buildSuccessorMap(sourceTasks.filter((task) => ((!task.id.toString().includes('.')) === isPhase)));
+        const selected = selectedIds
+            .map((id) => metricsById[id] || tasks.find((task) => task.id === id))
+            .filter(Boolean)
+            .sort((left, right) => compareWbsIds(left.id, right.id));
+
+        const candidates = scopedTasks
+            .filter((task) => {
+                if (selectedSet.has(task.id)) return false;
+                if (taskForm.id && task.id.startsWith(`${taskForm.id}.`)) return false;
+                if (taskForm.id && hasPath(successors, taskForm.id, task.id)) return false;
+                return true;
+            })
+            .map((task) => ({
+                ...task,
+                suggestionScore: scoreDependencyCandidate(task, taskForm, scopedTasks, metricsById),
+            }))
+            .sort((left, right) => {
+                if (right.suggestionScore !== left.suggestionScore) {
+                    return right.suggestionScore - left.suggestionScore;
+                }
+                return compareWbsIds(left.id, right.id);
+            });
+
+        const suggested = candidates.filter((task) => task.suggestionScore >= 70);
+        const compatible = candidates.filter((task) => task.suggestionScore < 70);
+
+        return { selected, suggested, compatible };
+    }, [taskForm, tasks, metrics.tasks, isPhase]);
 
     const formatCurrency = (amount) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount);
 
@@ -296,7 +460,7 @@ export default function ProjectView({ project, onUpdateProject, onBack, APP_VERS
                 setTaskForm={setTaskForm}
                 onSubmit={handleSubmit}
                 isEditing={isEditing}
-                availableDependencies={availableDependencies}
+                dependencyOptions={dependencyOptions}
             />
 
             <TaskDetailsModal

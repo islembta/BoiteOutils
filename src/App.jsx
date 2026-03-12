@@ -5,6 +5,7 @@ import { getFrenchHolidays, getTodayDateString, diffDays, formatUIDateLong, offs
 import { calculateProjectMetrics } from './utils/pertCalculator';
 import ConfirmModal from './components/ConfirmModal';
 import { processRetroCompatibility } from './utils/retroCompatibility';
+import ImportExportModal from './components/ImportExportModal';
 
 const PROJECTS_STORAGE_KEY = 'pert_projects_v2';
 const APP_VERSION = __APP_VERSION__;
@@ -14,6 +15,7 @@ export default function App() {
     const [currentProjectId, setCurrentProjectId] = useState(null);
     const [isLoaded, setIsLoaded] = useState(false);
     const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [newProjectName, setNewProjectName] = useState('');
     const [confirmModal, setConfirmModal] = useState({
         isOpen: false,
@@ -21,41 +23,20 @@ export default function App() {
         title: '',
         message: '',
     });
-    const homeFileInputRef = useRef(null);
-
-    const handleHomeImportChange = (event) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (loadEvent) => {
-            try {
-                const data = JSON.parse(loadEvent.target.result);
-                const processResult = processRetroCompatibility(data, APP_VERSION);
-                
-                if (!Array.isArray(processResult.project?.tasks)) {
-                    alert('Fichier invalide : impossible de retrouver les tâches du projet.');
-                    return;
-                }
-
-                const newProject = {
-                    id: `proj-${Date.now()}`,
-                    name: processResult.project.name || 'Projet Importé',
-                    startDate: processResult.project.startDate || getTodayDateString(),
-                    ignoreWeekends: processResult.project.ignoreWeekends ?? true,
-                    holidays: processResult.project.holidays || getFrenchHolidays(new Date().getFullYear()),
-                    createdAt: new Date().toISOString(),
-                    tasks: processResult.project.tasks || [],
-                };
-
-                setProjects((currentProjects) => [...currentProjects, newProject]);
-                setCurrentProjectId(newProject.id);
-            } catch (error) {
-                alert("Impossible de lire le fichier. Assurez-vous que c'est un fichier d'export valide.");
-            }
+    const handleHomeImport = (importedProject) => {
+        const newProject = {
+            id: `proj-${Date.now()}`,
+            name: importedProject.name || 'Projet Importé',
+            startDate: importedProject.startDate || getTodayDateString(),
+            ignoreWeekends: importedProject.ignoreWeekends ?? true,
+            holidays: importedProject.holidays || getFrenchHolidays(new Date().getFullYear()),
+            createdAt: new Date().toISOString(),
+            tasks: importedProject.tasks || [],
         };
-        reader.readAsText(file);
-        if (homeFileInputRef.current) homeFileInputRef.current.value = '';
+
+        setProjects((currentProjects) => [...currentProjects, newProject]);
+        setCurrentProjectId(newProject.id);
+        setIsImportModalOpen(false);
     };
 
     useEffect(() => {
@@ -195,16 +176,8 @@ export default function App() {
                         <p className="text-slate-500 mt-1">Gérez vos estimations de temps et de coûts multi-projets</p>
                     </div>
                     <div className="flex items-center gap-3">
-                        <input
-                            type="file"
-                            accept=".btotls"
-                            ref={homeFileInputRef}
-                            onChange={handleHomeImportChange}
-                            className="hidden"
-                            id="home-import-file"
-                        />
                         <button
-                            onClick={() => document.getElementById('home-import-file').click()}
+                            onClick={() => setIsImportModalOpen(true)}
                             className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 text-indigo-600 border border-indigo-200 font-medium rounded-lg shadow-sm transition-colors"
                         >
                             <Upload className="w-5 h-5" /> Importer un projet
@@ -367,6 +340,14 @@ export default function App() {
                 message={confirmModal.message}
                 isDanger={confirmModal.isDanger}
                 confirmText={confirmModal.confirmText}
+            />
+
+            <ImportExportModal
+                isOpen={isImportModalOpen}
+                onClose={() => setIsImportModalOpen(false)}
+                onImport={handleHomeImport}
+                appVersion={APP_VERSION}
+                mode="import"
             />
         </div>
     );
