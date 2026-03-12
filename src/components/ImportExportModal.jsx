@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    X, Download, Upload, FileJson, CheckCircle,
+    X, Download, Upload, FileText, CheckCircle,
     AlertTriangle, Info, FolderOpen, ArrowDownToLine, ArrowUpFromLine
 } from 'lucide-react';
 import { processRetroCompatibility } from '../utils/retroCompatibility';
@@ -48,7 +48,7 @@ export default function ImportExportModal({ isOpen, onClose, project, onImport, 
         const safeName = exportProject.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
 
         link.href = url;
-        link.download = `${safeName}_v${appVersion}_${new Date().toISOString().slice(0, 10)}.json`;
+        link.download = `${safeName}_v${appVersion}_${new Date().toISOString().slice(0, 10)}.btotls`;
         link.click();
         URL.revokeObjectURL(url);
     };
@@ -88,7 +88,7 @@ export default function ImportExportModal({ isOpen, onClose, project, onImport, 
                 }
             } catch {
                 setImportStatus('error');
-                setImportMessage("Impossible de lire le fichier. Assurez-vous que c'est un JSON valide.");
+                setImportMessage("Impossible de lire le fichier. Assurez-vous que c'est un export valide.");
                 setPreview(null);
             }
         };
@@ -145,7 +145,7 @@ export default function ImportExportModal({ isOpen, onClose, project, onImport, 
                 <div className="bg-gradient-to-r from-indigo-700 to-indigo-500 px-6 py-5 flex items-center justify-between">
                     <div>
                         <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                            <FileJson className="w-6 h-6" /> Gestion de Projet
+                            <FileText className="w-6 h-6" /> Gestion de Projet
                         </h2>
                         <p className="text-indigo-200 text-sm mt-0.5">Import &amp; Export - Application v{appVersion}</p>
                     </div>
@@ -188,7 +188,7 @@ export default function ImportExportModal({ isOpen, onClose, project, onImport, 
 
                         <div className="flex items-center gap-2 p-2.5 bg-indigo-50 border border-indigo-100 rounded-lg text-xs text-indigo-600">
                             <Info className="w-4 h-4 shrink-0" />
-                            Le fichier JSON contient les tâches, les contraintes, la date de départ du projet et les jours fériés.
+                            Le fichier d'export contient les tâches, les contraintes, la date de départ du projet et les jours fériés.
                         </div>
 
                         <button
@@ -197,7 +197,7 @@ export default function ImportExportModal({ isOpen, onClose, project, onImport, 
                             className="mt-auto w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-semibold rounded-lg shadow-sm transition-colors text-sm"
                         >
                             <Download className="w-4 h-4" />
-                            Télécharger le fichier JSON
+                            Télécharger le fichier .btotls
                         </button>
                     </section>
 
@@ -209,18 +209,18 @@ export default function ImportExportModal({ isOpen, onClose, project, onImport, 
 
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">
-                                Fichier JSON exporté
+                                Fichier .btotls exporté
                             </label>
                             <label className="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 hover:border-indigo-400 rounded-lg p-6 cursor-pointer transition-colors bg-slate-50 hover:bg-indigo-50 group">
                                 <FolderOpen className="w-8 h-8 text-slate-400 group-hover:text-indigo-400 mb-2 transition-colors" />
                                 <span className="text-sm text-slate-500 group-hover:text-indigo-600 transition-colors font-medium">
                                     Cliquer pour choisir un fichier
                                 </span>
-                                <span className="text-xs text-slate-400 mt-1">Format .json uniquement</span>
+                                <span className="text-xs text-slate-400 mt-1">Format .btotls uniquement</span>
                                 <input
                                     ref={fileInputRef}
                                     type="file"
-                                    accept=".json,application/json"
+                                    accept=".btotls"
                                     onChange={handleFileChange}
                                     className="hidden"
                                 />
@@ -256,7 +256,7 @@ export default function ImportExportModal({ isOpen, onClose, project, onImport, 
                 </div>
 
                 <div className="px-6 py-3 bg-slate-50 border-t border-slate-100 text-center text-xs text-slate-400">
-                    BoiteOutils - Estimateur PERT &amp; Ressources - v{appVersion}
+                    Boite à Outils Projets - v{appVersion}
                 </div>
             </div>
         </div>

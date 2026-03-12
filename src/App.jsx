@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import { Activity, Plus, Calendar, BarChart2, Trash2 } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
+import { Activity, Plus, Calendar, BarChart2, Trash2, Upload } from 'lucide-react';
 import ProjectView from './components/ProjectView';
 import { getFrenchHolidays, getTodayDateString, diffDays, formatUIDateLong, offsetToEndDate } from './utils/dateUtils';
 import { calculateProjectMetrics } from './utils/pertCalculator';
 import ConfirmModal from './components/ConfirmModal';
+import { processRetroCompatibility } from './utils/retroCompatibility';
 
 const PROJECTS_STORAGE_KEY = 'pert_projects_v2';
 const APP_VERSION = __APP_VERSION__;
@@ -20,6 +21,42 @@ export default function App() {
         title: '',
         message: '',
     });
+    const homeFileInputRef = useRef(null);
+
+    const handleHomeImportChange = (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (loadEvent) => {
+            try {
+                const data = JSON.parse(loadEvent.target.result);
+                const processResult = processRetroCompatibility(data, APP_VERSION);
+                
+                if (!Array.isArray(processResult.project?.tasks)) {
+                    alert('Fichier invalide : impossible de retrouver les tâches du projet.');
+                    return;
+                }
+
+                const newProject = {
+                    id: `proj-${Date.now()}`,
+                    name: processResult.project.name || 'Projet Importé',
+                    startDate: processResult.project.startDate || getTodayDateString(),
+                    ignoreWeekends: processResult.project.ignoreWeekends ?? true,
+                    holidays: processResult.project.holidays || getFrenchHolidays(new Date().getFullYear()),
+                    createdAt: new Date().toISOString(),
+                    tasks: processResult.project.tasks || [],
+                };
+
+                setProjects((currentProjects) => [...currentProjects, newProject]);
+                setCurrentProjectId(newProject.id);
+            } catch (error) {
+                alert("Impossible de lire le fichier. Assurez-vous que c'est un fichier d'export valide.");
+            }
+        };
+        reader.readAsText(file);
+        if (homeFileInputRef.current) homeFileInputRef.current.value = '';
+    };
 
     useEffect(() => {
         try {
@@ -157,12 +194,28 @@ export default function App() {
                         </h1>
                         <p className="text-slate-500 mt-1">Gérez vos estimations de temps et de coûts multi-projets</p>
                     </div>
-                    <button
-                        onClick={handleCreateProjectClick}
-                        className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-sm transition-colors"
-                    >
-                        <Plus className="w-5 h-5" /> Nouveau Projet
-                    </button>
+                    <div className="flex items-center gap-3">
+                        <input
+                            type="file"
+                            accept=".btotls"
+                            ref={homeFileInputRef}
+                            onChange={handleHomeImportChange}
+                            className="hidden"
+                            id="home-import-file"
+                        />
+                        <button
+                            onClick={() => document.getElementById('home-import-file').click()}
+                            className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 text-indigo-600 border border-indigo-200 font-medium rounded-lg shadow-sm transition-colors"
+                        >
+                            <Upload className="w-5 h-5" /> Importer un projet
+                        </button>
+                        <button
+                            onClick={handleCreateProjectClick}
+                            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-sm transition-colors"
+                        >
+                            <Plus className="w-5 h-5" /> Nouveau Projet
+                        </button>
+                    </div>
                 </header>
 
                 {projects.length === 0 ? (
