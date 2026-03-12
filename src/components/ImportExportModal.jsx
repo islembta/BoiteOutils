@@ -33,7 +33,7 @@ export default function ImportExportModal({ isOpen, onClose, project, onImport, 
             appVersion,
             exportDate: new Date().toISOString(),
             project: exportProject,
-            // Champs conservés pour compatibilité descendante.
+            // Conserver les champs historiques pour relire les anciens exports.
             projectName: exportProject.name,
             startDate: exportProject.startDate,
             ignoreWeekends: exportProject.ignoreWeekends,

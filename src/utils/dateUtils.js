@@ -115,8 +115,6 @@ export const diffWorkDays = (dateString1, dateString2, holidays = []) => {
     if (!dateString1 || !dateString2) return null;
     let d1 = parseDateString(dateString1);
     let d2 = parseDateString(dateString2);
-
-    // Si c'est le même jour
     if (d1.getTime() === d2.getTime()) return 0;
 
     let count = 0;
@@ -125,9 +123,6 @@ export const diffWorkDays = (dateString1, dateString2, holidays = []) => {
     const end = isForward ? d2 : d1;
 
     while (current < end) {
-        // On n'incrémente qu'après avoir vérifié ou avant, la logique habituelle :
-        // La différence entre Vendredi et Lundi est 1 jour ouvré.
-        // current=Vendredi. current+=1 -> Samedi (skip), Dimanche (skip), Lundi (count=1). On atteint end, on sort.  
         current = fnsAddDays(current, 1);
         const currentStr = formatDateString(current);
         if (!isWeekend(current) && !holidays.includes(currentStr)) {

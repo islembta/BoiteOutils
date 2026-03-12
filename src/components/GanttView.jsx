@@ -10,9 +10,8 @@ import { addDays, addWorkDays, toUIDate, getTodayDateString, getDateOffset } fro
 // Niveaux de zoom : px par jour
 // 25%=15, 47%=28, 70%=42, 100%=60, 142%=85, 200%=120, 267%=160, 367%=220
 const ZOOM_LEVELS = [15, 28, 42, 60, 85, 120, 160, 220];
-const DEFAULT_ZOOM_IDX = 3; // 60 px/jour = 100%
+const DEFAULT_ZOOM_IDX = 3;
 
-// ── Panneau de détails inline (affiché en fullscreen) ─────────────────────────
 function InlineTaskPanel({ task, onClose, onEdit }) {
     if (!task) return null;
     const formatCurrency = (v) =>
@@ -29,7 +28,6 @@ function InlineTaskPanel({ task, onClose, onEdit }) {
                 className={`relative w-full max-w-lg bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden pointer-events-auto border-t-4 ${task.isCritical ? 'border-rose-500' : 'border-indigo-500'}`}
                 onClick={(e) => e.stopPropagation()}
             >
-                {/* Header */}
                 <div className={`px-5 py-4 flex items-start justify-between border-b ${task.isCritical ? 'bg-rose-50 border-rose-100' : 'bg-slate-50 border-slate-100'}`}>
                     <div>
                         <div className="flex items-center gap-2 mb-1">
@@ -45,9 +43,7 @@ function InlineTaskPanel({ task, onClose, onEdit }) {
                     </button>
                 </div>
 
-                {/* Body */}
                 <div className="p-5 overflow-y-auto max-h-[65vh] grid grid-cols-2 gap-4 text-sm">
-                    {/* Durée + coût */}
                     <div className="col-span-2 grid grid-cols-2 gap-3">
                         <div className="bg-indigo-50 rounded-xl p-3 flex items-center gap-2">
                             <Clock className="w-4 h-4 text-indigo-500 shrink-0" />
@@ -65,7 +61,6 @@ function InlineTaskPanel({ task, onClose, onEdit }) {
                         </div>
                     </div>
 
-                    {/* Planning calculé */}
                     {task.computedStartDate && task.computedEndDate && (
                         <div className="col-span-2 bg-slate-50 rounded-xl p-3 flex items-center gap-2 border border-slate-200">
                             <Calendar className="w-4 h-4 text-indigo-400 shrink-0" />
@@ -83,7 +78,6 @@ function InlineTaskPanel({ task, onClose, onEdit }) {
                         </div>
                     )}
 
-                    {/* ES/EF/LS/LF/Slack — tâches seulement */}
                     {!isPhase && (
                         <>
                             <div className="bg-blue-50 rounded-lg p-2 text-center border border-blue-100">
@@ -109,18 +103,16 @@ function InlineTaskPanel({ task, onClose, onEdit }) {
                         </>
                     )}
 
-                    {/* Alerte de violation de contrainte */}
                     {task.constraintError && (
                         <div className="col-span-2 bg-orange-50 border border-orange-300 rounded-xl p-3 flex items-start gap-2">
-                            <span className="text-orange-500 text-base shrink-0">⚠️</span>
+                            <span className="text-orange-500 text-base shrink-0">Ò¢�&¡� Ò¯�¸�</span>
                             <p className="text-xs text-orange-700 font-medium">{task.constraintError}</p>
                         </div>
                     )}
 
-                    {/* Dépendances */}
                     {!isPhase && task.dependencies?.length > 0 && (
                         <div className="col-span-2">
-                            <p className="text-[10px] text-slate-400 font-semibold uppercase mb-1">Dépendances</p>
+                            <p className="text-[10px] text-slate-400 font-semibold uppercase mb-1">DÒ��©pendances</p>
                             <div className="flex flex-wrap gap-1">
                                 {task.dependencies.map(d => (
                                     <span key={d} className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 font-bold text-xs">{d}</span>
@@ -129,7 +121,6 @@ function InlineTaskPanel({ task, onClose, onEdit }) {
                         </div>
                     )}
 
-                    {/* Description phase */}
                     {isPhase && task.description && (
                         <div className="col-span-2 bg-slate-50 rounded-xl p-3 border border-slate-200 text-slate-700 text-xs whitespace-pre-wrap">
                             {task.description}
@@ -137,7 +128,6 @@ function InlineTaskPanel({ task, onClose, onEdit }) {
                     )}
                 </div>
 
-                {/* Footer */}
                 <div className="px-5 py-3 border-t border-slate-100 bg-white flex justify-between items-center">
                     {onEdit && (
                         <button
@@ -156,47 +146,44 @@ function InlineTaskPanel({ task, onClose, onEdit }) {
     );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 export default function GanttView({
     tasks,
     duration,
     projectStartDate,
-    ganttViewMode,   // 'days' | 'calendar'
+    ganttViewMode,
     focusDate,
     onFocusDateChange,
     selectedDay: selectedDayProp,
     onSelectedDayChange,
-    onModeChange,    // (mode) => void
+    onModeChange,
     ignoreWeekends,
     holidays = [],
-    onShowDetails,   // (task) => void  — ouvre la modal détails (hors fullscreen)
-    onEdit,          // (task) => void  — ouvre le formulaire d'édition
+    onShowDetails,
+    onEdit,
 }) {
     const [zoomIdx, setZoomIdx] = useState(DEFAULT_ZOOM_IDX);
     const [isFullscreen, setIsFullscreen] = useState(false);
-    const [fsTask, setFsTask] = useState(null); // tâche sélectionnée en fullscreen
-    const [selectedDay, setSelectedDay] = useState(null); // date string YYYY-MM-DD sélectionnée
+    const [fsTask, setFsTask] = useState(null);
+    const [selectedDay, setSelectedDay] = useState(null);
     const containerRef = useRef(null);
     const zoomViewportRef = useRef(null);
     const previousModeRef = useRef(ganttViewMode);
     const previousLayoutRef = useRef(null);
     const lastReportedFocusRef = useRef(focusDate ?? null);
     const hasRestoredInitialFocusRef = useRef(false);
-    const scrollRef = useRef(null);     // zone d'overflow horizontale + verticale
-    const labelScrollRef = useRef(null); // colonne noms (scroll vertical synchronisé)
+    const scrollRef = useRef(null);
+    const labelScrollRef = useRef(null);
 
-    // ── Fullscreen API ──────────────────────────────────────────────────────
     const toggleFullscreen = useCallback(async () => {
         if (!document.fullscreenElement) {
             try { await containerRef.current?.requestFullscreen(); }
-            catch { /* non supporté */ }
+            catch { }
         } else {
             await document.exitFullscreen();
         }
     }, []);
 
-    // Modifier depuis le panneau fullscreen : on quitte d'abord le plein écran,
-    // puis on appelle onEdit une fois que le DOM est rétabli (TaskFormModal visible).
+    // Exit fullscreen before reopening the edit modal on the restored tree.
     const handleFsEdit = useCallback(async (task) => {
         setFsTask(null);
         if (document.fullscreenElement) {
@@ -208,7 +195,7 @@ export default function GanttView({
     useEffect(() => {
         const handler = () => {
             setIsFullscreen(!!document.fullscreenElement);
-            setFsTask(null); // ferme le panneau en quittant le fullscreen
+            setFsTask(null);
         };
         document.addEventListener('fullscreenchange', handler);
         return () => document.removeEventListener('fullscreenchange', handler);
@@ -228,19 +215,16 @@ export default function GanttView({
         lastReportedFocusRef.current = focusDate ?? null;
     }, [focusDate]);
 
-    // ── Synchronisation du scroll vertical labels ↔ corps ──────────────────
     const handleBodyScroll = useCallback(() => {
         if (labelScrollRef.current && scrollRef.current) {
             labelScrollRef.current.scrollTop = scrollRef.current.scrollTop;
         }
     }, []);
 
-    // ── Molette (Wheel) : Zoom Ctrl+Molette ou Scroll Horizontal ───────────────
     const bindWheelHandler = () => {
         const el = scrollRef.current;
         if (!el) return;
         const onWheel = (e) => {
-            // 1. Zoom (Ctrl + Molette)
             if (e.ctrlKey) {
                 e.preventDefault();
                 if (e.deltaY < 0) {
@@ -250,10 +234,6 @@ export default function GanttView({
                 }
                 return;
             }
-            // 2. Transformer molette verticale en scroll horizontal
-            // Exclut les vrais scrolls horizontaux (trackpads, shift+scroll natif) et le scroll en y natif
-            // Si la hauteur de contenu dépasse, on pourrait vouloir scroller en Y, mais
-            // l'utilisateur a spécifiquement demandé de scroller horizontalement par défaut.
             if (!e.shiftKey && Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
                 e.preventDefault();
                 el.scrollLeft += e.deltaY;
@@ -262,8 +242,6 @@ export default function GanttView({
         el.addEventListener('wheel', onWheel, { passive: false });
         return () => el.removeEventListener('wheel', onWheel);
     };
-    // Recrocher le listener si scrollRef change après montage
-    // (scrollRef est stable dans ce composant donc le tableau vide est correct)
 
 
     // ── Dimensions ────────────────────────────────────────────────────────
@@ -305,19 +283,14 @@ export default function GanttView({
         zoomViewportRef.current = null;
     }, [totalW]);
 
-    // ── Helper unifié : offset colonne pour une date donnée ─────────────────
-    // SOURCE DE VÉRITÉ UNIQUE pour toutes les positions X du Gantt.
-    // Jours ouvrés si ignoreWeekends, calendaires sinon.
     const colOffset = useCallback((dateStr) => {
         return getDateOffset(projectStartDate, dateStr, ignoreWeekends, holidays);
     }, [projectStartDate, ignoreWeekends, holidays]);
 
-    // ── Navigation ─────────────────────────────────────────────────────────
     const scrollToDate = useCallback((dateStr, smooth = true) => {
         if (!scrollRef.current || !projectStartDate || !dateStr) return;
         const offset = colOffset(dateStr);
         if (offset === null) return;
-        // On centre la vue sur le MILIEU de la journée (offset + 0.5)
         const px = ((offset + PADDING_DAYS + 0.5) / NUM_COLS) * totalW;
         scrollRef.current.scrollTo({ left: px - scrollRef.current.offsetWidth / 2, behavior: smooth ? 'smooth' : 'auto' });
     }, [colOffset, PADDING_DAYS, NUM_COLS, totalW, projectStartDate]);
@@ -367,10 +340,9 @@ export default function GanttView({
         scrollToDate(today);
     }, [scrollToDate]);
 
-    // Avancer d'1 « jour de grille » (ouvré ou calendaire selon le mode)
     const addDay = useCallback((dateStr, delta) =>
         ignoreWeekends ? addWorkDays(dateStr, delta, holidays) : addDays(dateStr, delta)
-    , [ignoreWeekends, holidays]);
+        , [ignoreWeekends, holidays]);
 
     const navDay = useCallback((delta) => {
         const base = selectedDay || getTodayDateString();
@@ -386,26 +358,20 @@ export default function GanttView({
         scrollToDate(next);
     }, [selectedDay, ignoreWeekends, holidays, scrollToDate]);
 
-    // ── Offsets de colonnes (source unique via colOffset) ───────────────────
     const todayOffset = colOffset(getTodayDateString());
     const selectedDayOffset = selectedDay ? colOffset(selectedDay) : null;
 
-    // ── Recentrage à chaque changement de zoom ───────────────────────────────
     useEffect(() => {
-        // focus sans animation "smooth" pour éviter le défilement fantôme au zoom
         return undefined;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [zoomIdx]);
 
 
 
-    // ── Smart tick step ─────────────────────────────────────────────────────
     const minLabelPx = 55;
     const rawStep = Math.ceil((minLabelPx * NUM_COLS) / Math.max(1, totalW));
     const NICE = [1, 2, 5, 7, 10, 14, 21, 28];
     const tickStep = NICE.find(d => d >= rawStep) || rawStep;
 
-    // ── Mois (vue calendrier) ────────────────────────────────────────────────
     const months = [];
     if (ganttViewMode === 'calendar' && projectStartDate) {
         let cur = null;
@@ -422,13 +388,11 @@ export default function GanttView({
         }
     }
 
-    // ── Style helpers ────────────────────────────────────────────────────────
     const toolBtnCls = (active = false) =>
         `p-1.5 rounded transition-all ${active ? 'bg-indigo-600 text-white shadow' : 'text-slate-500 hover:bg-white hover:text-indigo-600 hover:shadow-sm'}`;
     const segBtnCls = (active) =>
         `flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded transition-all ${active ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:bg-white hover:text-indigo-600'}`;
 
-    // ── Rendu des ticks de l'axe X ───────────────────────────────────────────
     const renderTick = (i) => {
         if (i % tickStep !== 0 && i !== NUM_COLS) return null;
         const di = i - PADDING_DAYS;
@@ -441,9 +405,8 @@ export default function GanttView({
         if (ganttViewMode === 'days') {
             dateLabel = `J ${di}`;
         } else if (projectStartDate) {
-            // Utiliser la même fonction que le calcul des positions pour la cohérence
             const date = ignoreWeekends ? addWorkDays(projectStartDate, di, holidays) : addDays(projectStartDate, di);
-            tickDate = date; // date calendaire pour la sélection
+            tickDate = date;
             if (date) {
                 const d = new Date(date + 'T00:00:00');
                 dateLabel = d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
@@ -452,13 +415,12 @@ export default function GanttView({
                 dateLabel = `J${di}`;
             }
         }
-        // Centrer le tick au MILIEU de la colonne de la journée (i + 0.5)
         const leftPx = ((i + 0.5) / NUM_COLS) * totalW;
         const colorCls = isSelected
             ? 'text-amber-600'
             : isToday ? 'text-rose-600'
-            : isStart ? 'text-indigo-600'
-            : 'text-slate-400';
+                : isStart ? 'text-indigo-600'
+                    : 'text-slate-400';
         const clickable = ganttViewMode === 'calendar' && tickDate;
         return (
             <div
@@ -479,17 +441,15 @@ export default function GanttView({
                 <span className={`relative text-[9px] font-semibold whitespace-nowrap ${isToday || isSelected ? 'font-black' : ''} ${colorCls}`}>
                     {dateLabel}
                 </span>
-                <div className={`w-px mt-0.5 ${
-                    isSelected ? 'h-3 bg-amber-500'
+                <div className={`w-px mt-0.5 ${isSelected ? 'h-3 bg-amber-500'
                     : isToday ? 'h-3 bg-rose-500'
-                    : isStart ? 'h-3 bg-indigo-400'
-                    : 'h-2 bg-slate-300'
-                }`} />
+                        : isStart ? 'h-3 bg-indigo-400'
+                            : 'h-2 bg-slate-300'
+                    }`} />
             </div>
         );
     };
 
-    // ── Clic sur une barre ───────────────────────────────────────────────────
     const handleBarClick = (task) => {
         if (isFullscreen) {
             setFsTask(task);
@@ -498,20 +458,15 @@ export default function GanttView({
         }
     };
 
-    // ── Conteneur style plein écran ──────────────────────────────────────────
     const wrapCls = `flex flex-col bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden ${isFullscreen ? 'fixed inset-0 z-[9999] rounded-none border-0' : ''}`;
     if (!tasks || tasks.length === 0) return null;
 
-    // ── Grille corps du Gantt ────────────────────────────────────────────────
-    // bodyHeight défini plus haut avec TOP_PAD_H
 
     return (
         <div ref={containerRef} className={wrapCls}>
 
-            {/* ══════════════ BARRE D'OUTILS ══════════════ */}
             <div className="flex flex-wrap items-center gap-1.5 px-3 py-2 border-b border-slate-200 bg-slate-50 shrink-0">
 
-                {/* Titre */}
                 <div className="flex items-center gap-1.5 mr-2 select-none">
                     <Activity className="w-3.5 h-3.5 text-indigo-500" />
                     <span className="text-xs font-bold text-slate-700 hidden sm:inline">Gantt</span>
@@ -519,7 +474,6 @@ export default function GanttView({
 
                 <div className="w-px h-4 bg-slate-300" />
 
-                {/* Switch Jours / Calendrier */}
                 <div className="flex items-center bg-slate-200/70 rounded-md p-0.5 gap-0.5">
                     <button onClick={() => onModeChange?.('days')} className={segBtnCls(ganttViewMode === 'days')}>
                         <AlignLeft className="w-3 h-3" />
@@ -533,7 +487,6 @@ export default function GanttView({
 
                 <div className="w-px h-4 bg-slate-300" />
 
-                {/* Navigation : Skip=-1sem, Chevron=-1j, Auj., Chevron=+1j, Skip=+1sem */}
                 <div className="flex items-center bg-slate-200/70 rounded-md p-0.5 gap-0">
                     <button onClick={() => navWeek(-1)} title="-1 semaine" className={toolBtnCls()}>
                         <SkipBack className="w-3.5 h-3.5" />
@@ -565,7 +518,6 @@ export default function GanttView({
 
                 <div className="w-px h-4 bg-slate-300" />
 
-                {/* Zoom */}
                 <div className="flex items-center bg-slate-200/70 rounded-md p-0.5 gap-0">
                     <button
                         onClick={() => updateZoom(Math.max(0, zoomIdx - 1))}
@@ -588,7 +540,6 @@ export default function GanttView({
                     </button>
                 </div>
 
-                {/* Slider zoom rapide */}
                 <input
                     type="range"
                     min={0}
@@ -601,7 +552,6 @@ export default function GanttView({
 
                 <div className="flex-1" />
 
-                {/* Plein écran */}
                 <button
                     onClick={toggleFullscreen}
                     title={isFullscreen ? 'Quitter le plein écran' : 'Plein écran (Ctrl+Molette pour zoomer)'}
@@ -611,29 +561,24 @@ export default function GanttView({
                 </button>
             </div>
 
-            {/* ══════════════ CORPS DU GANTT ══════════════ */}
             <div
                 className={`flex flex-1 overflow-hidden relative ${isFullscreen ? 'h-[calc(100vh-84px)]' : 'max-h-[70vh]'}`}
             >
-                {/* ─── Colonne noms (sticky gauche) ─── */}
                 <div
                     className="shrink-0 border-r border-slate-200 bg-white flex flex-col z-20"
                     style={{ width: `${LABEL_W}px` }}
                 >
-                    {/* Header placeholder */}
                     <div
                         className="shrink-0 bg-slate-50 border-b border-slate-200 flex items-end px-2 pb-1"
                         style={{ height: `${HEADER_H}px` }}
                     >
                         <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Tâche / Ressource</span>
                     </div>
-                    {/* Lignes noms — scroll vertical synchronisé */}
                     <div
                         ref={labelScrollRef}
                         className="overflow-y-hidden flex-1"
                         style={{ overflowY: 'hidden' }}
                     >
-                        {/* Spacer top — aligne avec TOP_PAD_H du corps graphique */}
                         {TOP_PAD_H > 0 && (
                             <div
                                 className="shrink-0 border-b border-slate-100 flex items-center px-2"
@@ -668,23 +613,19 @@ export default function GanttView({
                     </div>
                 </div>
 
-                {/* ─── Zone graphique ─── */}
                 <div
                     className="flex-1 overflow-x-auto overflow-y-scroll"
                     ref={scrollRef}
                     onScroll={handleBodyScroll}
                     style={{ scrollbarGutter: 'stable' }}
                 >
-                    {/* Contenu à largeur fixe (en px absolus) */}
                     <div style={{ width: `${totalW}px`, minWidth: `${totalW}px` }}>
 
-                        {/* ── Axe X ── */}
                         {ganttViewMode === 'calendar' ? (
                             <div
                                 className="border-b border-slate-200 bg-slate-50 sticky top-0 z-10"
                                 style={{ height: `${HEADER_H}px` }}
                             >
-                                {/* Rangée mois */}
                                 <div className="relative border-b border-slate-200 transition-all duration-300 ease-in-out" style={{ height: '24px', width: `${totalW}px` }}>
                                     {months.map(m => (
                                         <div
@@ -696,7 +637,6 @@ export default function GanttView({
                                         </div>
                                     ))}
                                 </div>
-                                {/* Rangée jours */}
                                 <div className="relative transition-all duration-300 ease-in-out" style={{ height: `${HEADER_H - 24}px`, width: `${totalW}px` }}>
                                     {Array.from({ length: NUM_COLS + 1 }).map((_, i) => renderTick(i))}
                                 </div>
@@ -710,10 +650,8 @@ export default function GanttView({
                             </div>
                         )}
 
-                        {/* ── Corps ── */}
                         <div className="relative transition-all duration-300 ease-in-out" style={{ height: `${bodyHeight}px`, width: `${totalW}px` }}>
 
-                            {/* Grille fond (colonnes verticales) */}
                             <div className="absolute inset-0 pointer-events-none z-0">
                                 {Array.from({ length: NUM_COLS }).map((_, i) => {
                                     const di = i - PADDING_DAYS;
@@ -739,7 +677,6 @@ export default function GanttView({
                                 })}
                             </div>
 
-                            {/* Lignes de séparation horizontales */}
                             {tasks.map((task, i) => (
                                 <div
                                     key={`hl-${task.id}`}
@@ -748,7 +685,6 @@ export default function GanttView({
                                 />
                             ))}
 
-                            {/* Ligne verticale Aujourd'hui — uniquement en vue calendrier */}
                             {ganttViewMode === 'calendar' && todayOffset !== null && todayOffset > -PADDING_DAYS && todayOffset < NUM_COLS - PADDING_DAYS && (
                                 <div
                                     className="absolute top-0 bottom-0 z-10 pointer-events-none transition-all duration-300 ease-in-out"
@@ -761,7 +697,6 @@ export default function GanttView({
                             )}
 
 
-                            {/* Flèches SVG dépendances — width en px absolus pour correspondre au viewBox */}
                             <svg
                                 className="absolute inset-0 pointer-events-none z-20 overflow-visible transition-all duration-300 ease-in-out"
                                 width={totalW}
@@ -785,10 +720,8 @@ export default function GanttView({
                                         const pred = tasks[pi];
                                         if (task.isParent || pred.isParent) return null;
 
-                                        // Point de départ : milieu droit de la barre prédécesseur
                                         const sx = ((pred.ef + PADDING_DAYS) / NUM_COLS) * totalW;
                                         const sy = TOP_PAD_H + pi * ROW_H + BAR_TOP + BAR_HEIGHT / 2;
-                                        // Point d'arrivée : milieu haut de la barre successeur
                                         const ex = ((task.es + PADDING_DAYS) / NUM_COLS) * totalW + (((task.ef - task.es) / NUM_COLS) * totalW) / 2;
                                         const ey = TOP_PAD_H + i * ROW_H + BAR_TOP;
 
@@ -817,7 +750,6 @@ export default function GanttView({
                                 )}
                             </svg>
 
-                            {/* Barres */}
                             {tasks.map((task, i) => {
                                 const barLeft = ((task.es + PADDING_DAYS) / NUM_COLS) * totalW;
                                 const barWidth = Math.max(4, (task.te / NUM_COLS) * totalW);
@@ -829,14 +761,12 @@ export default function GanttView({
                                     ? `${task.name}\nPlanning calculé: du ${toUIDate(task.computedStartDate)} au ${toUIDate(task.computedEndDate)}\nMarge: ${task.slack?.toFixed(1)}j${constraintsTip}`
                                     : `${task.name}\nES: ${task.es?.toFixed(1)} | EF: ${task.ef?.toFixed(1)} | Marge: ${task.slack?.toFixed(1)}j${constraintsTip}`;
 
-                                // Surbrillance si le jour sélectionné est dans la plage de la tâche
                                 const isActiveOnDay = selectedDay && task.computedStartDate && task.computedEndDate
                                     && selectedDay >= task.computedStartDate && selectedDay <= task.computedEndDate;
 
                                 return (
                                     <div key={`br-${task.id}`} className="absolute w-full transition-all duration-300 ease-in-out" style={{ top: `${TOP_PAD_H + i * ROW_H}px`, height: `${ROW_H}px` }}>
                                         {task.isParent ? (
-                                            // ── Phase (barre sombre style MS Project) ──
                                             <div
                                                 className={`absolute cursor-pointer hover:brightness-110 transition-all duration-300 ease-in-out z-10 ${isActiveOnDay ? 'brightness-125 ring-2 ring-amber-400 ring-offset-1 rounded-sm' : ''}`}
                                                 style={{ left: `${barLeft}px`, width: `${barWidth}px`, top: `${BAR_TOP + 2}px`, height: `${BAR_HEIGHT - 6}px` }}
@@ -854,7 +784,6 @@ export default function GanttView({
                                                 </div>
                                             </div>
                                         ) : (
-                                            // ── Tâche normale ──
                                             <div
                                                 className={`absolute cursor-pointer transition-all duration-300 ease-in-out z-10 flex items-center justify-center text-[9px] font-bold text-white rounded-md shadow-sm hover:brightness-110 hover:shadow-md overflow-hidden
                                                     ${isActiveOnDay ? 'ring-2 ring-amber-400 ring-offset-1 brightness-125 shadow-amber-300/50' : ''}
@@ -867,7 +796,6 @@ export default function GanttView({
                                             </div>
                                         )}
 
-                                        {/* Marge libre (ligne pointillée) */}
                                         {!task.isCritical && slackWidth > 0 && (
                                             <div
                                                 className="absolute border-b-[2px] border-dashed border-slate-300 pointer-events-none transition-all duration-300 ease-in-out"
@@ -886,7 +814,6 @@ export default function GanttView({
                     </div>
                 </div>
 
-                {/* ── Panneau détails inline (visible en fullscreen) ── */}
                 {isFullscreen && fsTask && (
                     <InlineTaskPanel
                         task={fsTask}
@@ -896,9 +823,7 @@ export default function GanttView({
                 )}
             </div>
 
-            {/* ══════════════ LÉGENDE ══════════════ */}
             <div className="flex flex-wrap items-center gap-4 px-4 py-1.5 text-[9px] text-slate-400 border-t border-slate-100 bg-slate-50/80 shrink-0 select-none">
-                {/* Phase */}
                 <div className="flex items-center gap-1">
                     <div className="relative w-4 h-2.5 bg-indigo-900 rounded-sm">
                         <div className="absolute top-0 bottom-[-2px] left-0 w-1 bg-indigo-900 rounded-bl" />
@@ -914,19 +839,16 @@ export default function GanttView({
                 <div className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-orange-500 ring-1 ring-orange-300" /> Contrainte violée</div>
                 {/* Séparateur */}
                 <div className="w-px h-3 bg-slate-200" />
-                {/* Dépendance critique */}
                 <div className="flex items-center gap-1">
                     <svg width="18" height="6"><line x1="0" y1="3" x2="18" y2="3" stroke="#f43f5e" strokeWidth="1.5" /></svg>
                     Dép. critique
                 </div>
-                {/* Dépendance normale */}
                 <div className="flex items-center gap-1">
                     <svg width="18" height="6"><line x1="0" y1="3" x2="18" y2="3" stroke="#6366f1" strokeDasharray="3,2" strokeWidth="1.5" /></svg>
                     Dépendance
                 </div>
                 {/* Marge */}
                 <div className="flex items-center gap-1"><div className="w-5 h-0 border-b-2 border-dashed border-slate-300" /> Marge</div>
-                {/* Aujourd'hui — uniquement en vue calendrier */}
                 {ganttViewMode === 'calendar' && (
                     <div className="flex items-center gap-1">
                         <div className="w-0.5 h-3 bg-rose-500" />

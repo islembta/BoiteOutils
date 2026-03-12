@@ -1,5 +1,6 @@
 node_modules
 dist
+dist_electron
 .env
 .env.local
 AI_CONTEXT.md 

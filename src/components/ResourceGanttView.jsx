@@ -7,17 +7,15 @@ import {
 } from 'lucide-react';
 import { addDays, addWorkDays, toUIDate, getTodayDateString, getDateOffset } from '../utils/dateUtils';
 
-// Niveaux de zoom : px par jour
 const ZOOM_LEVELS = [15, 28, 42, 60, 85, 120, 160, 220];
-const DEFAULT_ZOOM_IDX = 3; // 60 px/jour = 100%
+const DEFAULT_ZOOM_IDX = 3;
 
-// ── Panneau de détails inline (affiché en fullscreen) ─────────────────────────
 function InlineTaskPanel({ task, onClose, onEdit }) {
     if (!task) return null;
     const formatCurrency = (v) =>
         new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(v ?? 0);
     const estCost = (parseFloat(task.fixedCost) || 0) + (parseFloat(task.dailyCost) || 0) * (task.te || 0);
-    
+
     return (
         <div
             className="absolute inset-0 z-[200] flex items-center justify-center p-4 pointer-events-none"
@@ -27,7 +25,6 @@ function InlineTaskPanel({ task, onClose, onEdit }) {
                 className={`relative w-full max-w-lg bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden pointer-events-auto border-t-4 ${task.isCritical ? 'border-rose-500' : 'border-indigo-500'}`}
                 onClick={(e) => e.stopPropagation()}
             >
-                {/* Header */}
                 <div className={`px-5 py-4 flex items-start justify-between border-b ${task.isCritical ? 'bg-rose-50 border-rose-100' : 'bg-slate-50 border-slate-100'}`}>
                     <div>
                         <div className="flex items-center gap-2 mb-1">
@@ -42,9 +39,7 @@ function InlineTaskPanel({ task, onClose, onEdit }) {
                     </button>
                 </div>
 
-                {/* Body */}
                 <div className="p-5 overflow-y-auto max-h-[65vh] grid grid-cols-2 gap-4 text-sm">
-                    {/* Durée + coût */}
                     <div className="col-span-2 grid grid-cols-2 gap-3">
                         <div className="bg-indigo-50 rounded-xl p-3 flex items-center gap-2">
                             <Clock className="w-4 h-4 text-indigo-500 shrink-0" />
@@ -62,7 +57,6 @@ function InlineTaskPanel({ task, onClose, onEdit }) {
                         </div>
                     </div>
 
-                    {/* Planning calculé */}
                     {task.computedStartDate && task.computedEndDate && (
                         <div className="col-span-2 bg-slate-50 rounded-xl p-3 flex items-center gap-2 border border-slate-200">
                             <Calendar className="w-4 h-4 text-indigo-400 shrink-0" />
@@ -80,7 +74,6 @@ function InlineTaskPanel({ task, onClose, onEdit }) {
                         </div>
                     )}
 
-                    {/* ES/EF/LS/LF/Slack */}
                     <div className="bg-blue-50 rounded-lg p-2 text-center border border-blue-100">
                         <p className="text-[9px] text-slate-400 font-semibold uppercase">ES</p>
                         <p className="font-mono font-bold text-blue-700">{task.es?.toFixed(2)}</p>
@@ -101,8 +94,7 @@ function InlineTaskPanel({ task, onClose, onEdit }) {
                         <p className="text-[9px] text-slate-400 font-semibold uppercase">Marge (Slack)</p>
                         <p className={`font-mono font-bold ${task.slack === 0 ? 'text-rose-600' : 'text-emerald-600'}`}>{task.slack?.toFixed(2)} j</p>
                     </div>
-                    
-                    {/* Alerte de violation de contrainte */}
+
                     {task.constraintError && (
                         <div className="col-span-2 bg-orange-50 border border-orange-300 rounded-xl p-3 flex items-start gap-2">
                             <span className="text-orange-500 text-base shrink-0">⚠️</span>
@@ -111,7 +103,6 @@ function InlineTaskPanel({ task, onClose, onEdit }) {
                     )}
                 </div>
 
-                {/* Footer */}
                 <div className="px-5 py-3 border-t border-slate-100 bg-white flex justify-between items-center">
                     {onEdit && (
                         <button
@@ -130,25 +121,24 @@ function InlineTaskPanel({ task, onClose, onEdit }) {
     );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 export default function ResourceGanttView({
     tasks,
     duration,
     projectStartDate,
-    ganttViewMode,   // 'days' | 'calendar'
+    ganttViewMode,
     focusDate,
     onFocusDateChange,
     selectedDay: selectedDayProp,
     onSelectedDayChange,
-    onModeChange,    // (mode) => void
+    onModeChange,
     ignoreWeekends,
     holidays = [],
-    onShowDetails,   // (task) => void 
-    onEdit,          // (task) => void
+    onShowDetails,
+    onEdit,
 }) {
     const [zoomIdx, setZoomIdx] = useState(DEFAULT_ZOOM_IDX);
     const [isFullscreen, setIsFullscreen] = useState(false);
-    const [fsTask, setFsTask] = useState(null); 
+    const [fsTask, setFsTask] = useState(null);
     const [selectedDay, setSelectedDay] = useState(null);
     const containerRef = useRef(null);
     const zoomViewportRef = useRef(null);
@@ -158,7 +148,6 @@ export default function ResourceGanttView({
     const scrollRef = useRef(null);
     const labelScrollRef = useRef(null);
 
-    // ── Fullscreen API ──────────────────────────────────────────────────────
     const toggleFullscreen = useCallback(async () => {
         if (!document.fullscreenElement) {
             try { await containerRef.current?.requestFullscreen(); }
@@ -197,14 +186,12 @@ export default function ResourceGanttView({
         lastReportedFocusRef.current = focusDate ?? null;
     }, [focusDate]);
 
-    // ── Synchronisation du scroll vertical labels ↔ corps ──────────────────
     const handleBodyScroll = useCallback(() => {
         if (labelScrollRef.current && scrollRef.current) {
             labelScrollRef.current.scrollTop = scrollRef.current.scrollTop;
         }
     }, []);
 
-    // ── Molette (Wheel) ───────────────────────────────
     const bindWheelHandler = () => {
         const el = scrollRef.current;
         if (!el) return;
@@ -227,7 +214,6 @@ export default function ResourceGanttView({
         return () => el.removeEventListener('wheel', onWheel);
     };
 
-    // ── Dimensions ────────────────────────────────────────────────────────
     const PADDING_DAYS = ganttViewMode === 'calendar' ? 120 : 4;
     const HEADER_H = ganttViewMode === 'calendar' ? 68 : 40;
     const TOP_PAD_H = ganttViewMode === 'calendar' ? 28 : 0;
@@ -236,7 +222,7 @@ export default function ResourceGanttView({
     const pxPerDay = ZOOM_LEVELS[zoomIdx];
     const totalW = NUM_COLS * pxPerDay;
 
-    // ── GROUPAGE ──
+    // Stack overlapping assignments on separate lanes for each resource.
     const resourceMap = useMemo(() => {
         const map = {};
         (tasks || []).forEach(t => {
@@ -371,7 +357,7 @@ export default function ResourceGanttView({
 
     const addDay = useCallback((dateStr, delta) =>
         ignoreWeekends ? addWorkDays(dateStr, delta, holidays) : addDays(dateStr, delta)
-    , [ignoreWeekends, holidays]);
+        , [ignoreWeekends, holidays]);
 
     const navDay = useCallback((delta) => {
         const base = selectedDay || getTodayDateString();
@@ -444,8 +430,8 @@ export default function ResourceGanttView({
         const colorCls = isSelected
             ? 'text-amber-600'
             : isToday ? 'text-rose-600'
-            : isStart ? 'text-indigo-600'
-            : 'text-slate-400';
+                : isStart ? 'text-indigo-600'
+                    : 'text-slate-400';
         const clickable = ganttViewMode === 'calendar' && tickDate;
         return (
             <div
@@ -466,12 +452,11 @@ export default function ResourceGanttView({
                 <span className={`relative text-[9px] font-semibold whitespace-nowrap ${isToday || isSelected ? 'font-black' : ''} ${colorCls}`}>
                     {dateLabel}
                 </span>
-                <div className={`w-px mt-0.5 ${
-                    isSelected ? 'h-3 bg-amber-500'
-                    : isToday ? 'h-3 bg-rose-500'
-                    : isStart ? 'h-3 bg-indigo-400'
-                    : 'h-2 bg-slate-300'
-                }`} />
+                <div className={`w-px mt-0.5 ${isSelected ? 'h-3 bg-amber-500'
+                        : isToday ? 'h-3 bg-rose-500'
+                            : isStart ? 'h-3 bg-indigo-400'
+                                : 'h-2 bg-slate-300'
+                    }`} />
             </div>
         );
     };
@@ -489,7 +474,6 @@ export default function ResourceGanttView({
 
     return (
         <div ref={containerRef} className={wrapCls}>
-            {/* ══════════════ BARRE D'OUTILS ══════════════ */}
             <div className="flex flex-wrap items-center gap-1.5 px-3 py-2 border-b border-slate-200 bg-slate-50 shrink-0">
                 <div className="flex items-center gap-1.5 mr-2 select-none">
                     <User className="w-3.5 h-3.5 text-indigo-500" />
@@ -554,9 +538,7 @@ export default function ResourceGanttView({
                 </button>
             </div>
 
-            {/* ══════════════ CORPS ══════════════ */}
             <div className={`flex flex-1 overflow-hidden relative ${isFullscreen ? 'h-[calc(100vh-84px)]' : 'max-h-[70vh]'}`}>
-                {/* ─── Colonne noms (sticky gauche) ─── */}
                 <div className="shrink-0 border-r border-slate-200 bg-white flex flex-col z-20" style={{ width: `${LABEL_W}px` }}>
                     <div className="shrink-0 bg-slate-50 border-b border-slate-200 flex items-end px-2 pb-1" style={{ height: `${HEADER_H}px` }}>
                         <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Ressource</span>
@@ -577,11 +559,9 @@ export default function ResourceGanttView({
                     </div>
                 </div>
 
-                {/* ─── Zone graphique ─── */}
                 <div className="flex-1 overflow-x-auto overflow-y-scroll" ref={scrollRef} onScroll={handleBodyScroll} style={{ scrollbarGutter: 'stable' }}>
                     <div style={{ width: `${totalW}px`, minWidth: `${totalW}px` }}>
 
-                        {/* ── Axe X ── */}
                         {ganttViewMode === 'calendar' ? (
                             <div className="border-b border-slate-200 bg-slate-50 sticky top-0 z-10" style={{ height: `${HEADER_H}px` }}>
                                 <div className="relative border-b border-slate-200 transition-all duration-300 ease-in-out" style={{ height: '24px', width: `${totalW}px` }}>
@@ -601,9 +581,7 @@ export default function ResourceGanttView({
                             </div>
                         )}
 
-                        {/* ── Corps ── */}
                         <div className="relative transition-all duration-300 ease-in-out" style={{ height: `${bodyHeight}px`, width: `${totalW}px` }}>
-                            {/* Grille fond */}
                             <div className="absolute inset-0 pointer-events-none z-0">
                                 {Array.from({ length: NUM_COLS }).map((_, i) => {
                                     const di = i - PADDING_DAYS;
@@ -629,7 +607,6 @@ export default function ResourceGanttView({
                                 })}
                             </div>
 
-                            {/* Lignes horizontales séparatrices de ressources */}
                             {rowsLayout.map(row => (
                                 <div
                                     key={`hl-${row.resName}`}
@@ -649,15 +626,14 @@ export default function ResourceGanttView({
                                 </div>
                             )}
 
-                            {/* Tâches assignées par ressources */}
                             {rowsLayout.map(row => {
                                 return row.tasks.map(task => {
                                     const barLeft = ((task.es + PADDING_DAYS) / NUM_COLS) * totalW;
                                     const barWidth = Math.max(4, (task.te / NUM_COLS) * totalW);
-                                    
+
                                     const isActiveOnDay = selectedDay && task.computedStartDate && task.computedEndDate
                                         && selectedDay >= task.computedStartDate && selectedDay <= task.computedEndDate;
-                                    
+
                                     const constraintsTip = !task.isParent && (task.fixedStartDate || task.fixedEndDate)
                                         ? `\nContraintes:${task.fixedStartDate ? `\n- Début: ${toUIDate(task.fixedStartDate)}` : ''}${task.fixedEndDate ? `\n- Fin: ${toUIDate(task.fixedEndDate)}` : ''}`
                                         : '';
@@ -666,7 +642,7 @@ export default function ResourceGanttView({
                                         : `${task.name}\nES: ${task.es?.toFixed(1)} | EF: ${task.ef?.toFixed(1)} | Marge: ${task.slack?.toFixed(1)}j${constraintsTip}`;
 
                                     const isUnassigned = row.resName === 'Non assignée';
-                                    
+
                                     return (
                                         <div
                                             key={`br-${task.id}`}
@@ -677,7 +653,7 @@ export default function ResourceGanttView({
                                                 left: `${barLeft}px`,
                                                 width: `${barWidth}px`,
                                                 top: `${TOP_PAD_H + row.top + 8 + (task.overlapLevel * 32)}px`,
-                                                height: '24px' // Plus compact pour bien empiler
+                                                height: '24px'
                                             }}
                                             title={tip}
                                             onClick={() => handleBarClick(task)}
@@ -696,7 +672,6 @@ export default function ResourceGanttView({
                 )}
             </div>
 
-            {/* ══════════════ LÉGENDE ══════════════ */}
             <div className="flex flex-wrap items-center gap-4 px-4 py-1.5 text-[9px] text-slate-400 border-t border-slate-100 bg-slate-50/80 shrink-0 select-none">
                 <div className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-emerald-500" /> Ressource assignée</div>
                 <div className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-slate-400" /> Non assignée</div>

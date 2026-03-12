@@ -5,18 +5,8 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { parseISO, format } from 'date-fns';
 import { X } from 'lucide-react';
 
-// Register French locale globally
 registerLocale('fr', fr);
 
-/**
- * FrDateInput — date picker fully localized in French.
- * Props:
- *   value       : string 'YYYY-MM-DD' or ''
- *   onChange    : (newValue: string) => void   (newValue is 'YYYY-MM-DD' or '')
- *   placeholder : string (optional)
- *   className   : string (optional, applied to wrapper)
- *   inputClass  : string (optional, applied to the <input>)
- */
 export default function FrDateInput({ value, onChange, placeholder, className = '', inputClass = '' }) {
     const selected = value ? parseISO(value) : null;
 

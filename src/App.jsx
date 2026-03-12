@@ -194,8 +194,6 @@ export default function App() {
     });
 
     const globalSpan = globalMinDate && globalMaxDate ? (diffDays(globalMaxDate, globalMinDate) + 1) || 1 : 1;
-
-    // Build resource usage data
     const resourceTasks = [];
     enrichedProjects.forEach(p => {
         (p.metrics?.tasks || []).forEach(t => {
@@ -280,7 +278,6 @@ export default function App() {
                     </div>
                 ) : (
                     <div className="space-y-6">
-                        {/* Ressources globales supprimées de l'interface principale */}
 
                         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
                             <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
@@ -339,8 +336,6 @@ export default function App() {
                                 <p className="text-sm text-slate-500">Dates non définies ou projets vides.</p>
                             )}
                         </div>
-
-                        {/* Utilisation Globale des Ressources */}
                         {resourceEntries.length > 0 && (
                             <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
                                 <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
@@ -366,7 +361,6 @@ export default function App() {
                                                             className="relative bg-slate-50 rounded-lg border border-slate-100 overflow-hidden" 
                                                             style={{ height: `${rowHeight}px` }}
                                                         >
-                                                            {/* Background grid representation */}
                                                             <div className="absolute left-0 top-0 bottom-0 border-l border-slate-200" style={{ width: '100%' }} />
 
                                                             {tasks.map((task, i) => {

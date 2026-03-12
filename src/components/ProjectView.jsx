@@ -224,11 +224,8 @@ export default function ProjectView({ project, onUpdateProject, onBack, APP_VERS
             substeps: taskForm.substeps || []
         };
         if (isEditing) {
-            // Check if phase was changed
             if (!isPhase && taskForm.newParentId && taskForm.newParentId !== taskForm.originalId.split('.')[0]) {
                 const newParentId = taskForm.newParentId;
-                
-                // Find next available ID in the new phase
                 const childrenInNewPhase = tasks.filter(t => t.id.startsWith(newParentId + '.') && t.id.split('.').length === newParentId.split('.').length + 1);
                 const childNums = childrenInNewPhase.map(t => parseInt(t.id.split('.').pop())).filter(n => !isNaN(n));
                 const nextNum = childNums.length > 0 ? Math.max(...childNums) + 1 : 1;
@@ -236,8 +233,6 @@ export default function ProjectView({ project, onUpdateProject, onBack, APP_VERS
                 
                 newTaskData.id = finalId;
                 const oldId = taskForm.originalId;
-
-                // Update the task itself and any task that depended on it
                 setTasks([
                     ...tasks.filter(t => t.id !== oldId).map(t => ({
                         ...t,
@@ -258,7 +253,7 @@ export default function ProjectView({ project, onUpdateProject, onBack, APP_VERS
     const handleEdit = (task) => {
         setTaskForm({
             ...task, originalId: task.id,
-            newParentId: task.id.split('.')[0], // Initialize with current phase
+            newParentId: task.id.split('.')[0],
             optimistic: task.optimistic.toString(),
             realistic: task.realistic.toString(),
             pessimistic: task.pessimistic.toString(),
@@ -294,12 +289,10 @@ export default function ProjectView({ project, onUpdateProject, onBack, APP_VERS
     const handleFabAddTask = () => {
         const phases = tasks.filter(t => !t.id.includes('.'));
         if (phases.length === 0) {
-            // Pas de phase : on crée direct une tâche de premier niveau
             handleAddPhase();
             return;
         }
         if (phases.length === 1) {
-            // Une seule phase : on l'utilise directement
             setFabOpen(false);
             handleAddChildTask(phases[0].id);
             return;
@@ -365,8 +358,6 @@ export default function ProjectView({ project, onUpdateProject, onBack, APP_VERS
         <>
             <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans text-slate-800">
                 <div className="max-w-7xl mx-auto space-y-8">
-
-                    {/* Header */}
                     <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-200 pb-6">
                         <div className="flex items-center gap-4">
                             <button onClick={onBack} className="p-2 bg-white border border-slate-200 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors shadow-sm">
@@ -392,16 +383,12 @@ export default function ProjectView({ project, onUpdateProject, onBack, APP_VERS
                             </button>
                         </div>
                     </header>
-
-                    {/* Error */}
                     {metrics.error && (
                         <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-md flex items-center gap-3">
                             <AlertCircle className="w-6 h-6 text-red-500" />
                             <p className="text-red-700 font-medium">{metrics.error}</p>
                         </div>
                     )}
-
-                    {/* KPIs */}
                     {!metrics.error && (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                             <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex flex-col justify-between">
@@ -422,8 +409,6 @@ export default function ProjectView({ project, onUpdateProject, onBack, APP_VERS
                             </div>
                         </div>
                     )}
-
-                    {/* Tabs */}
                     <div className="flex flex-col gap-0">
                         <div className="flex gap-0 border-b border-slate-200 overflow-x-auto">
                             <button
@@ -508,8 +493,6 @@ export default function ProjectView({ project, onUpdateProject, onBack, APP_VERS
 
                 </div>
             </div>
-
-            {/* Modals */}
             <TaskFormModal
                 isOpen={isFormModalOpen}
                 onClose={() => { setIsFormModalOpen(false); if (!isEditing) resetForm(); }}
@@ -543,17 +526,11 @@ export default function ProjectView({ project, onUpdateProject, onBack, APP_VERS
                 project={project}
                 onSave={onUpdateProject}
             />
-
-            {/* FAB overlay pour fermeture en cliquant ailleurs */}
             {fabOpen && (
                 <div className="fixed inset-0 z-[39]" onClick={() => setFabOpen(false)} />
             )}
-
-            {/* FAB Expandable */}
             <div className="fixed bottom-6 right-6 md:bottom-10 md:right-10 z-[40] flex flex-col items-end gap-3">
-                {/* Sub-FABs */}
                 <div className={`flex flex-col items-end gap-3 transition-all duration-300 ${fabOpen ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
-                    {/* Ajouter une Tâche */}
                     <div className="flex items-center gap-3">
                         <span className="bg-slate-800 text-white text-sm font-medium px-3 py-1.5 rounded-lg shadow-lg whitespace-nowrap">Nouvelle Tâche</span>
                         <button
@@ -564,7 +541,6 @@ export default function ProjectView({ project, onUpdateProject, onBack, APP_VERS
                             <CheckSquare className="w-5 h-5" />
                         </button>
                     </div>
-                    {/* Ajouter une Phase */}
                     <div className="flex items-center gap-3">
                         <span className="bg-slate-800 text-white text-sm font-medium px-3 py-1.5 rounded-lg shadow-lg whitespace-nowrap">Nouvelle Phase</span>
                         <button
@@ -576,8 +552,6 @@ export default function ProjectView({ project, onUpdateProject, onBack, APP_VERS
                         </button>
                     </div>
                 </div>
-
-                {/* Main FAB */}
                 <button
                     onClick={() => setFabOpen(v => !v)}
                     title={fabOpen ? 'Fermer' : 'Ajouter…'}
@@ -588,7 +562,6 @@ export default function ProjectView({ project, onUpdateProject, onBack, APP_VERS
                 </button>
             </div>
 
-            {/* Modal sélection de phase pour nouvelle tâche */}
             {phaseSelectModal && (
                 <div className="fixed inset-0 z-[50] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setPhaseSelectModal(false)} />

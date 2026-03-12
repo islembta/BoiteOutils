@@ -5,19 +5,6 @@ import { toUIDate } from '../utils/dateUtils';
 const formatCurrency = (amount) =>
     new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount);
 
-/**
- * Tableau des tâches PERT avec colonnes : ID, Nom/Ressource, Prédécesseurs,
- * Durée, Marge, Coût, Critique, Actions.
- *
- * Props :
- *   tasks          — tableau de tâches calculées (avec te, slack, isCritical…)
- *   isEditing      — bool indiquant si une tâche est en cours d'édition
- *   editingTaskId  — id de la tâche en cours d'édition (null si aucune)
- *   ganttViewMode  — 'days' | 'calendar'
- *   onShowDetails  — (task) => void — ouvre le modal de détails
- *   onEdit         — (task) => void — ouvre le modal d'édition
- *   onDelete       — (taskId) => void — supprime la tâche
- */
 export default function TaskTable({
     tasks,
     isEditing,
