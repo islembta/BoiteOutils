@@ -224,7 +224,30 @@ export default function ProjectView({ project, onUpdateProject, onBack, APP_VERS
             substeps: taskForm.substeps || []
         };
         if (isEditing) {
-            setTasks([...tasks.filter(t => t.id !== taskForm.originalId), newTaskData]);
+            // Check if phase was changed
+            if (!isPhase && taskForm.newParentId && taskForm.newParentId !== taskForm.originalId.split('.')[0]) {
+                const newParentId = taskForm.newParentId;
+                
+                // Find next available ID in the new phase
+                const childrenInNewPhase = tasks.filter(t => t.id.startsWith(newParentId + '.') && t.id.split('.').length === newParentId.split('.').length + 1);
+                const childNums = childrenInNewPhase.map(t => parseInt(t.id.split('.').pop())).filter(n => !isNaN(n));
+                const nextNum = childNums.length > 0 ? Math.max(...childNums) + 1 : 1;
+                const finalId = `${newParentId}.${nextNum}`;
+                
+                newTaskData.id = finalId;
+                const oldId = taskForm.originalId;
+
+                // Update the task itself and any task that depended on it
+                setTasks([
+                    ...tasks.filter(t => t.id !== oldId).map(t => ({
+                        ...t,
+                        dependencies: (t.dependencies || []).map(depId => depId === oldId ? finalId : depId)
+                    })),
+                    newTaskData
+                ]);
+            } else {
+                setTasks([...tasks.filter(t => t.id !== taskForm.originalId), newTaskData]);
+            }
         } else {
             setTasks([...tasks, newTaskData]);
         }
@@ -235,6 +258,7 @@ export default function ProjectView({ project, onUpdateProject, onBack, APP_VERS
     const handleEdit = (task) => {
         setTaskForm({
             ...task, originalId: task.id,
+            newParentId: task.id.split('.')[0], // Initialize with current phase
             optimistic: task.optimistic.toString(),
             realistic: task.realistic.toString(),
             pessimistic: task.pessimistic.toString(),
@@ -495,6 +519,7 @@ export default function ProjectView({ project, onUpdateProject, onBack, APP_VERS
                 isEditing={isEditing}
                 dependencyOptions={dependencyOptions}
                 projectResources={project.resources || []}
+                phases={tasks.filter(t => !t.id.includes('.'))}
             />
 
             <TaskDetailsModal

@@ -11,6 +11,7 @@ export default function TaskFormModal({
     isEditing,
     dependencyOptions,
     projectResources = [],
+    phases = [],
 }) {
     const [substepPromptState, setSubstepPromptState] = useState({ isOpen: false, value: '' });
 
@@ -88,8 +89,8 @@ export default function TaskFormModal({
                             type="button"
                             onClick={() => toggleDependency(task.id)}
                             className={`w-full flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left transition-colors ${isSelected
-                                    ? 'border-indigo-300 bg-indigo-50 text-indigo-900'
-                                    : 'border-slate-200 bg-white hover:border-indigo-200 hover:bg-slate-50'
+                                ? 'border-indigo-300 bg-indigo-50 text-indigo-900'
+                                : 'border-slate-200 bg-white hover:border-indigo-200 hover:bg-slate-50'
                                 }`}
                         >
                             <div className="min-w-0">
@@ -149,6 +150,26 @@ export default function TaskFormModal({
                                     />
                                 </div>
                             </div>
+
+                            {isEditing && !isPhase && phases.length > 0 && (
+                                <div className="mt-4 p-4 rounded-xl border border-amber-200 bg-amber-50/50">
+                                    <label className="block text-sm font-medium text-amber-900 mb-2">Changer la Phase de cette tâche</label>
+                                    <select
+                                        value={taskForm.newParentId || taskForm.id.split('.')[0]}
+                                        onChange={(e) => setTaskForm({ ...taskForm, newParentId: e.target.value })}
+                                        className="w-full rounded-lg border-amber-300 shadow-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500 sm:text-sm p-2.5 border outline-none bg-white font-medium text-slate-700"
+                                    >
+                                        {phases.map(p => (
+                                            <option key={p.id} value={p.id}>{p.id} - {p.name}</option>
+                                        ))}
+                                    </select>
+                                    {taskForm.newParentId && taskForm.newParentId !== taskForm.id.split('.')[0] && (
+                                        <p className="text-sm text-amber-800 mt-3 font-medium bg-amber-100/50 p-2.5 rounded-lg border border-amber-200/50">
+                                            ⚠️ Attention : En changeant la phase de cette tâche, son ID sera automatiquement recalculé et toutes les dépendances la concernant seront mises à jour.
+                                        </p>
+                                    )}
+                                </div>
+                            )}
 
                             {isPhase && (
                                 <div className="mt-4">
@@ -255,7 +276,7 @@ export default function TaskFormModal({
                                         Les dates ci-dessous sont des contraintes calendaires. Elles bornent le calcul du planning, mais elles ne remplacent pas la durée PERT de la tâche. Les dates réelles de début et de fin sont calculées automatiquement.
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-2 gap-3 mt-4">
                                         <div>
                                             <label className="block text-sm font-medium text-slate-700 mb-1">Contrainte de début (opt.)</label>
                                             <FrDateInput
